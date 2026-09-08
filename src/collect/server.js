@@ -31,11 +31,14 @@ export async function startServer (options = {}) {
     boomStatus: 500, loopHops: Infinity, hangCloses: false, hugeChunks: 44_000,
     blockedMode: 'blocked',      // 'blocked' | 'plain404'
     hostileToBrowsers: true,     // /hostile hangs up on anything asking for HTML
+    flakyFailsAfterFirst: true,  // /flaky serves the first visit and hangs up on every one after
+    emptyServesPage: false,      // /empty normally answers nothing at all
     goneStatus: 404,
     challengeMode: 'challenge',  // 'challenge' | 'real'
     ...options
   }
   const hanging = new Set()
+  let flakyHits = 0
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://127.0.0.1`)
@@ -47,6 +50,24 @@ export async function startServer (options = {}) {
       return res.end(cfg.boomStatus >= 400 ? '<h1>Internal Server Error</h1>' : '<!doctype html><html lang="en"><head><title>Recovered</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main><h1>Back up</h1></main></body></html>')
     }
     if (p === '/gone') { res.writeHead(cfg.goneStatus, { 'content-type': 'text/html' }); return res.end('<h1>Not found</h1>') }
+
+    // Answers nothing at all, so Chrome lands on its own error page — the one whose title is the
+    // hostname and which fires a load event like any other document.
+    if (p === '/empty') {
+      if (!cfg.emptyServesPage) return req.socket.destroy()
+      res.writeHead(200, { 'content-type': 'text/html' })
+      return res.end('<!doctype html><html lang="en"><head><title>A real page after all</title></head><body><main><h1>Here</h1></main></body></html>')
+    }
+
+    // Serves the first visit and hangs up on every one after. The collector visits twice — desktop
+    // then phone — and the phone pass has no network recorder, so this is the shape that would
+    // have had a browser error page measured as somebody's mobile site.
+    if (p === '/flaky') {
+      flakyHits++
+      if (cfg.flakyFailsAfterFirst && flakyHits > 1) return req.socket.destroy()
+      res.writeHead(200, { 'content-type': 'text/html' })
+      return res.end('<!doctype html><html lang="en"><head><title>Fine on the first visit</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main><h1>Hello</h1></main></body></html>')
+    }
 
     // Hangs up on anything that asks for HTML, and answers a plain request perfectly well. Chrome
     // cannot get a page out of this over HTTP/2 or HTTP/1.1, so the retry does not rescue it and

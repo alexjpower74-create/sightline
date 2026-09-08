@@ -61,6 +61,7 @@ export async function collect (url, opts = {}) {
   // settling for a non-answer: a real measurement beats a graceful shrug, and a site whose server
   // speaks broken HTTP/2 is otherwise a permanent blind spot.
   const note = opts.onNote || (() => {})
+  let retriedWith = null
   if (opts.retryWithoutHttp2 !== false && !(first.err instanceof TimeoutError)) {
     note({ kind: 'retry', why: rawCodeOf(first.err) || describe(first.err), plainStatus: second.status })
     const retry = await attempt(url, {
@@ -74,11 +75,21 @@ export async function collect (url, opts = {}) {
       note({ kind: 'retry', outcome: 'measured over HTTP/1.1' })
       return retry.m
     }
+    // The retry failed too, and HOW it failed is worth keeping. On a live site the first attempt
+    // gets ERR_HTTP2_PROTOCOL_ERROR and the HTTP/1.1 attempt gets ERR_EMPTY_RESPONSE — two
+    // different refusals, which is a materially more interesting fact than one repeated.
+    retriedWith = rawCodeOf(retry.err) || (retry.err ? describe(retry.err) : 'no page')
+    note({ kind: 'retry', outcome: 'failed', error: retriedWith })
   }
 
-  // Still nothing. Ours, not theirs — and say so with both sides showing.
+  // Still nothing. Ours, not theirs — and say so with every side showing, because the next step
+  // is a human checking this site by hand and this string is what they start from.
   first.m.unreachableReason = 'checker-error'
-  first.m.error = `${rawCodeOf(first.err) || describe(first.err)} from Chrome; a plain request returned ${second.status}`
+  first.m.error = [
+    `${rawCodeOf(first.err) || describe(first.err)} from Chrome`,
+    retriedWith ? `${retriedWith} over HTTP/1.1` : null,
+    `a plain request returned ${second.status}`
+  ].filter(Boolean).join('; ')
   return first.m
 }
 
@@ -95,6 +106,7 @@ async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
 
   let browser = opts.browser || null
   const borrowedBrowser = !!opts.browser
+  let launching = null
   let timer = null
   let failure = null
 
@@ -105,12 +117,23 @@ async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
     })
     const work = (async () => {
       if (!browser) {
-        browser = await launch({
+        // Held as a promise as well as a value: if the deadline fires while Chrome is still
+        // starting, `browser` is still null when the finally runs, and closing null leaks the
+        // browser that arrives a moment later. One per timed-out site, on a long call list.
+        //
+        // The promise is assigned SYNCHRONOUSLY, before anything is awaited. Written the obvious
+        // way, `await freePort()` sits inside the argument object and suspends before `launching`
+        // exists, so a deadline landing in that window would find both the value and the promise
+        // null. Hardening, not a fix for anything observed: the window is sub-millisecond and no
+        // realistic deadline lands in it — restoring the race does not reproduce a leak. It costs
+        // nothing and it closes the hole, which is reason enough to keep it.
+        launching = (async () => launch({
           headless: opts.headless ?? true,
           port: opts.port ?? await freePort(),
           width: DESKTOP.width, height: DESKTOP.height,
           args: chromeArgs
-        })
+        }))()
+        browser = await launching
       }
       await runPasses(browser, url, m, { ...opts, deadline, note })
     })()
@@ -129,7 +152,11 @@ async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
     }
   } finally {
     clearTimeout(timer)
-    if (browser && !borrowedBrowser) { try { await browser.close() } catch { /* it is going away regardless */ } }
+    if (!borrowedBrowser) {
+      // Whatever the launch produced, even if it arrived after we stopped waiting for it.
+      const started = browser || (launching ? await launching.catch(() => null) : null)
+      if (started) { try { await started.close() } catch { /* it is going away regardless */ } }
+    }
   }
   return { m, err: failure }
 }
@@ -262,10 +289,23 @@ async function runPasses (browser, url, m, opts) {
 
     if (opts.screenshots !== false && opts.outDir) {
       const info = await evalFn(phone, docInfoScript)
-      const height = Math.min(info.scrollHeight || MOBILE.height, MOBILE.height * 2)
-      const shot = await capture(phone, { outDir: opts.outDir, name: `${stemFor(m.url)}-mobile`, clip: { x: 0, y: 0, width: MOBILE.width, height }, scale: 2 / MOBILE.dpr })
+      // Capture at the width the page actually laid out at, not at 390.
+      //
+      // A page with no viewport meta does not lay out at the device width: Chrome widens the
+      // layout viewport to the content and scales the whole thing down to fit the screen. Clipping
+      // such a page to 390 crops it to the left third, which is not what anybody sees. What the
+      // visitor sees is the entire page shrunk to unreadable — and for a report that is the most
+      // persuasive image there is, because the owner recognises it instantly.
+      const layoutWidth = Math.max(MOBILE.width, Math.round(info.clientWidth || MOBILE.width))
+      const screenfuls = 2
+      const maxHeight = Math.round((layoutWidth * MOBILE.height) / MOBILE.width) * screenfuls
+      const height = Math.min(info.scrollHeight || maxHeight, maxHeight)
+      // Whatever the layout width, the PNG comes out 780 across — a phone at 2x — so the report
+      // gets a consistent image and the shrinking is visible in it rather than described.
+      const scale = (MOBILE.width * 2) / (layoutWidth * MOBILE.dpr)
+      const shot = await capture(phone, { outDir: opts.outDir, name: `${stemFor(m.url)}-mobile`, clip: { x: 0, y: 0, width: layoutWidth, height }, scale })
       m.screenshots.mobile = shot.path
-      note({ kind: 'screenshot', which: 'mobile', ...shot })
+      note({ kind: 'screenshot', which: 'mobile', layoutWidthCss: layoutWidth, shrunkToFit: layoutWidth > MOBILE.width, ...shot })
     }
   } finally {
     await phone.close().catch(() => {})
@@ -365,7 +405,7 @@ async function navigate (page, url, { budget, net = null }) {
 
   const until = Date.now() + budget
   while (Date.now() < until) {
-    if (loadFired) return { loadFired: true }
+    if (loadFired) return confirmLanded(page, url, { loadFired: true })
     const failed = net && net.documentFailure()
     if (failed) throw new NavigationError(`${failed.error}${failed.blocked ? ` (${failed.blocked})` : ''} (${url})`)
     await sleep(100)
@@ -373,8 +413,27 @@ async function navigate (page, url, { budget, net = null }) {
 
   const state = await page.eval('document.readyState + "|" + (document.body ? document.body.childElementCount : -1)').catch(() => 'unknown|-1')
   const [readyState, children] = state.split('|')
-  if (readyState === 'complete' || domFired || Number(children) > 0) return { loadFired: false, readyState }
+  if (readyState === 'complete' || domFired || Number(children) > 0) return confirmLanded(page, url, { loadFired: false, readyState })
   throw new NavigationError(`no page after ${budget}ms (readyState "${readyState}") (${url})`)
+}
+
+/**
+ * The load event is not proof. Chrome fires it on its OWN error page, and that page has a title
+ * (the hostname), a body, and a perfectly convincing readyState — so a navigation that failed
+ * looks exactly like one that worked unless you ask where you actually landed.
+ *
+ * The desktop pass would have caught this through the network recorder. The mobile pass has no
+ * recorder, so until this existed a phone-pass failure would have been measured as the site: no
+ * viewport meta, enormous overflow, and a screenshot of a browser error page presented to a
+ * business owner as their own home page.
+ */
+async function confirmLanded (page, url, result) {
+  const href = await page.eval('location.href').catch(() => '')
+  if (!/^chrome-error:\/\//.test(href)) return result
+  const code = await page
+    .eval('(document.body ? document.body.innerText : "").match(/ERR_[A-Z0-9_]+/)?.[0] || "UNKNOWN"')
+    .catch(() => 'UNKNOWN')
+  throw new NavigationError(`net::${code} — the browser landed on its own error page (${url})`)
 }
 
 /** Give late layout a moment: web fonts swapping in move text, and text is what we measure. */
@@ -545,5 +604,5 @@ export const NETWORK_ERRORS = {
   'net::ERR_ADDRESS_UNREACHABLE': 'the server could not be reached'
 }
 
-export { measureHorizontalOverflow, navigate, describe, certificateCodeOf, rawCodeOf }
+export { measureHorizontalOverflow, navigate, confirmLanded, describe, certificateCodeOf, rawCodeOf }
 export default collect
