@@ -69,11 +69,27 @@ async function runJob (job, businesses, preparedBy) {
   job.state = 'done'
 }
 
-export function serve ({ port = 5177, preparedBy } = {}) {
+export function serve ({ port = 5177, preparedBy, exitWhenIdle = false } = {}) {
+  // When launched from the app icon there is no terminal to press Ctrl-C in, so the page holds
+  // the server open and letting go of it shuts the server down. The off-switch is closing the tab,
+  // which is the one a person already knows.
+  let lastSeen = Date.now()
+  const IDLE_MS = 25_000
+  let idleTimer = null
+  if (exitWhenIdle) {
+    idleTimer = setInterval(() => {
+      if (Date.now() - lastSeen > IDLE_MS) { console.log('page closed — shutting down'); process.exit(0) }
+    }, 5_000)
+    idleTimer.unref?.()
+  }
+
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://127.0.0.1:${port}`)
 
+    lastSeen = Date.now()
+
     if (url.pathname === '/') return send(res, 200, readFileSync(join(here, 'index.html')), TYPES['.html'])
+    if (url.pathname === '/api/alive') return send(res, 200, { ok: true })
 
     if (url.pathname === '/api/audit' && req.method === 'POST') {
       let body = ''

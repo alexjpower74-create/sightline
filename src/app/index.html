@@ -184,6 +184,11 @@ Landmark Surveys, landmarksurveys.ca"></textarea>
   $('goMany').onclick = () => run(parseList($('bulk').value))
   $('url').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click() })
 
+  // Hold the server open while this page is on screen. Closing the tab stops Sightline — which
+  // is the whole off-switch when it was started from the app icon rather than a terminal.
+  setInterval(() => { fetch('/api/alive').catch(() => {}) }, 5000)
+  fetch('/api/alive').catch(() => {})
+
   try { const by = localStorage.getItem('sightline.by'); if (by) $('by').value = by } catch {}
   $('by').addEventListener('change', () => { try { localStorage.setItem('sightline.by', $('by').value) } catch {} })
 </script>

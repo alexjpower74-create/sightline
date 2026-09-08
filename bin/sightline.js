@@ -65,7 +65,7 @@ try {
     case 'serve': {
       const { serve } = await import('../src/app/server.js')
       const port = Number(flag('--port', 5177))
-      const { url } = await serve({ port, preparedBy: preparedBy() })
+      const { url } = await serve({ port, preparedBy: preparedBy(), exitWhenIdle: rest.includes('--exit-when-idle') })
       console.log(`Sightline is running at ${url}`)
       console.log('Paste a website address and press Audit it. Ctrl-C here to stop.\n')
       if (!rest.includes('--no-open')) {
