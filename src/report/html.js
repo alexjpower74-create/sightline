@@ -17,7 +17,7 @@ import { AREAS, SEVERITY, assertAudit } from '../contract.js'
 import { fontCss, stylesheet, image } from './assets.js'
 import {
   STRONG_HEADLINE, BAND_FOLLOWUP, BAND_LINE, SEVERITY_LABEL, EFFORT_LABEL,
-  AREA_MEANING, areaLabel, areaWeightPct, unreachableCopy, bytes, ms, count, yesNo, shortDate
+  AREA_MEANING, areaLabel, areaWeightPct, noScoreCopy, bytes, ms, count, yesNo, shortDate
 } from './copy.js'
 
 /* ── escaping ─────────────────────────────────────────────────────────────────────────────── */
@@ -98,9 +98,13 @@ export function view (audit, opts = {}) {
     areasRanked,
     generatedAt: audit.generatedAt || m.fetchedAt || null,
     preparedBy: opts.preparedBy || null,
+    // Different budgets, because the two shots are printed at very different sizes. The phone
+    // capture appears at 54mm in the rail and 48mm on page 3 — about 640px at 300dpi — while the
+    // desktop shot gets the full 120mm column. Embedding a 2880px-wide capture for either is
+    // paying for pixels the page cannot print.
     shots: {
-      mobile: image(m.screenshots?.mobile),
-      desktop: image(m.screenshots?.desktop)
+      mobile: image(m.screenshots?.mobile, { maxWidth: 760, quality: opts.imageQuality ?? 78, compress: opts.compressImages !== false }),
+      desktop: image(m.screenshots?.desktop, { maxWidth: 1400, quality: opts.imageQuality ?? 78, compress: opts.compressImages !== false })
     }
   }
 }
@@ -257,22 +261,30 @@ function phoneRail (v) {
       </div>`
 }
 
-/** Page 1 when there is nothing at the address. No score, no bars, no invention. */
+/**
+ * Page 1 when there is no score: the site is down, or it refused our checker, or our checker
+ * broke. Three states, three sets of words, and only the first of them is the site's fault.
+ *
+ * The accent rule on the consequence line is deliberately conditional. A red bar next to "this
+ * says nothing about your website" is the document contradicting itself in the one place it most
+ * needs to be believed.
+ */
 function downBlock (v) {
-  const c = unreachableCopy(v.measurement)
+  const c = noScoreCopy(v.band, v.measurement)
   const m = v.measurement
   return `
   <section class="down">
     <h2>${esc(c.headline)}</h2>
     <p class="lede">${esc(c.body)}</p>
-    <p class="consequence">${esc(c.consequence)}</p>
+    <p class="consequence${c.accent ? ' is-fault' : ''}">${esc(c.consequence)}</p>
     <p class="next">${esc(c.next)}</p>
     <div class="no-score"><span class="no-score-label">Why there is no score</span>${esc(c.noScore)}</div>
   </section>
   <section class="attempt">
     <div><span class="k">Address tried</span><span>${esc(m.url || '—')}</span></div>
     <div><span class="k">Ended at</span><span>${esc(m.finalUrl || '—')}</span></div>
-    <div><span class="k">Result</span><span>${esc(m.error || 'no response')}</span></div>
+    <div><span class="k">${esc(c.attemptLabel)}</span><span>${esc(m.error || 'no response')}</span></div>
+    ${m.unreachableReason ? `<div><span class="k">Reason</span><span>${esc(m.unreachableReason)}</span></div>` : ''}
     <div><span class="k">Checked</span><span>${esc(m.fetchedAt || '—')}</span></div>
   </section>`
 }
@@ -332,7 +344,7 @@ const row = (k, v, empty = false) =>
 function metrics (v) {
   const m = v.measurement
   if (!v.reachable) {
-    return '<p class="empty-note">Not measured — the site did not respond, so every field here would be a zero we invented.</p>'
+    return `<p class="empty-note">${esc(noScoreCopy(v.band, m).appendix)}</p>`
   }
   const t = m.timing || {}, w = m.weight || {}, h = m.https || {}, mo = m.mobile || {},
         a = m.a11y || {}, s = m.seo || {}, fr = m.freshness || {}
@@ -394,21 +406,30 @@ function metrics (v) {
 function evidenceSection (v) {
   const { desktop, mobile } = v.shots
   if (!desktop && !mobile) return ''
+  // Built with plain ternaries rather than yes(cond, html).
+  //
+  // yes() takes an already-built string, so its second argument is evaluated whether the condition
+  // holds or not — `yes(desktop, \`...${desktop.src}...\`)` throws on a null desktop instead of
+  // rendering nothing. It never fired while all three fixtures had both screenshots null; the
+  // first audit with a phone shot and no desktop shot took the whole render down.
+  const desktopCol = desktop
+    ? `
+      <div class="col-wide">
+        <div class="shot is-desktop"><img src="${desktop.src}" alt=""></div>
+        <p class="shot-caption"><strong>Desktop — 1440 × 900 viewport.</strong> Top of the page. ${esc(v.measurement.finalUrl || '')}</p>
+      </div>`
+    : ''
+  const mobileCol = mobile
+    ? `
+      <div class="${desktop ? 'col-narrow' : 'col-wide'}">
+        <div class="shot"><img src="${mobile.src}" alt=""></div>
+        <p class="shot-caption"><strong>Phone — 390 × 844 viewport.</strong> Top of the page, as the browser laid it out at that size${mobile.width ? ` (captured ${mobile.width} × ${mobile.height} px)` : ''}.</p>
+      </div>`
+    : ''
   return `
   <section>
     <div class="section-head"><h2>Screenshots</h2><span class="aside">Captured during this audit</span></div>
-    <div class="shot-pair">
-      ${yes(desktop, `
-      <div class="col-wide">
-        <div class="shot is-desktop"><img src="${desktop.src}" alt=""></div>
-        <p class="shot-caption"><strong>Desktop — 1440 × 900 viewport.</strong> ${esc(v.measurement.finalUrl || '')}</p>
-      </div>`)}
-      ${yes(mobile, `
-      <div class="col-narrow">
-        <div class="shot"><img src="${mobile.src}" alt=""></div>
-        <p class="shot-caption"><strong>Phone — 390 × 844 viewport.</strong> ${mobile.width ? `Captured ${mobile.width} × ${mobile.height} px — ` : ''}as the browser laid the page out at that size.</p>
-      </div>`)}
-    </div>
+    <div class="shot-pair">${desktopCol}${mobileCol}</div>
   </section>`
 }
 
