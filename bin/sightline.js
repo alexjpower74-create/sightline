@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { auditOne, auditMany, writeReports, callList, score, explain, loadJson } from '../src/cli/run.js'
+import { auditOne, auditMany, writeReports, callList, score, explain, loadJson, tidyScreenshots } from '../src/cli/run.js'
 import { runFolder, HOME_FOLDER } from '../src/cli/paths.js'
 import { writeFileSync } from 'node:fs'
 import { basename } from 'node:path'
@@ -42,6 +42,7 @@ try {
       console.log(explain(audit.measurement))
       console.log(`\n${audit.score.hook}\n`)
       await writeReports([audit], out)
+      tidyScreenshots(out)
       console.log(`\nsaved to  ${out}`)
       break
     }
@@ -53,7 +54,9 @@ try {
       console.log('\n' + callList(audits) + '\n')
       writeFileSync(`${out}/call-list.json`, JSON.stringify(audits.map(a => ({ ...a, measurement: undefined })), null, 2))
       await writeReports(audits, out)
+      const moved = tidyScreenshots(out)
       console.log(`\nsaved to  ${out}`)
+      console.log(`  ${audits.length} reports${moved ? `, ${moved} screenshots in screenshots/` : ''}`)
       break
     }
     case 'score': {
