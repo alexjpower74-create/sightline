@@ -13,6 +13,15 @@
 export const SEVERITY = { CRITICAL: 'critical', MAJOR: 'major', MINOR: 'minor', GOOD: 'good' }
 
 /** The five areas a small-business owner actually understands. Weights sum to 1. */
+/**
+ * The five areas a small-business owner actually understands. Weights sum to 1.
+ *
+ * `accessibility` here means "the specific barriers this tool checks for" and nothing wider. It is
+ * eight checks, not a share of any standard, and a full score means those eight are clear — not
+ * that a site conforms to anything. Never print the name of a standard beside it: a number out of
+ * 100 next to those letters is a claim this tool is not entitled to make, and it is exactly the
+ * claim that gets forwarded to somebody who checks.
+ */
 export const AREAS = {
   performance:   { label: 'Speed',         weight: 0.25 },
   mobile:        { label: 'Phones',        weight: 0.25 },
@@ -32,6 +41,11 @@ export const AREAS = {
  *   Why we could not read the site. `blocked` is deliberately distinct from the rest: bot
  *   protection refusing our checker is NOT the same as the site being down, and telling an owner
  *   their working site is down is the single worst thing this tool could do.
+ * @property {{url:string, status:number}[]} redirects
+ *   The hops between the address someone typed and the page that was drawn. `collect` already
+ *   follows this chain; recording it makes it reportable. "Your address takes five hops before
+ *   anything appears" is actionable in a way a load time is not, and it is invisible to everyone
+ *   except the person waiting.
  * @property {{ttfbMs:number, domContentLoadedMs:number, loadMs:number}} timing
  *   `loadMs` / `domContentLoadedMs` of **0 mean the event never fired**, not that the page was
  *   instant. A page with one request hanging behind an analytics tag is visible and usable and
@@ -62,6 +76,7 @@ export const AREAS = {
 export function emptyMeasurement (url) {
   return {
     url, finalUrl: url, fetchedAt: new Date().toISOString(), ok: false, error: null, unreachableReason: null,
+    redirects: [],
     timing: { ttfbMs: 0, domContentLoadedMs: 0, loadMs: 0 },
     weight: { totalBytes: 0, requests: 0, imageBytes: 0, scriptBytes: 0, largestImage: null },
     https: { enabled: false, redirectsToHttps: false, mixedContent: [], certificateProblem: null },

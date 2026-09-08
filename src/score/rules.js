@@ -122,7 +122,12 @@ export const RULES = [
   {
     id: 'broken-links', area: 'trust', severity: SEVERITY.MAJOR, penalty: 20, effort: 'quick',
     title: 'Links that go nowhere',
-    when: m => m.freshness.brokenLinks.length > 0,
+    // Suppressed when the certificate is untrusted, because then it is not true. Our link probe
+    // refuses the same handshake a browser refuses, so an expired certificate fails EVERY link on
+    // the site — and the report would show "eleven broken links" next to "the certificate has
+    // expired": two findings for one cause, and the first one false. Those links work the moment
+    // the certificate is renewed. One cause, one finding.
+    when: m => m.freshness.brokenLinks.length > 0 && !m.https.certificateProblem,
     evidence: m => `${m.freshness.brokenLinks.length} broken link(s): ${m.freshness.brokenLinks.slice(0, 3).map(l => `${l.url} (${l.status})`).join(', ')}`,
     plainEnglish: m => `${m.freshness.brokenLinks.length} link${m.freshness.brokenLinks.length === 1 ? '' : 's'} on your site lead to a "page not found" error. One of them is usually the one somebody clicked to reach you.`
   },
@@ -202,7 +207,9 @@ export const RULES = [
     // transparent ancestors — so this count undercounts, and only ever in one direction. The
     // threshold is low because of that, and the wording never claims to be a complete list.
     when: m => m.a11y.lowContrastNodes >= 3,
-    evidence: m => `at least ${m.a11y.lowContrastNodes} text node(s) below WCAG AA contrast (a floor — nodes over images or transparency are not counted)`,
+    // States the ratio rather than naming the standard. Precise and actionable for a developer,
+    // and it makes no conformance claim sitting next to a score out of 100.
+    evidence: m => `at least ${m.a11y.lowContrastNodes} text node(s) below a 4.5:1 contrast ratio (a floor — nodes over images or transparency are not counted)`,
     plainEnglish: m => `At least ${m.a11y.lowContrastNodes} pieces of text on your site are too pale against their background to read comfortably — outdoors, on an older screen, or by anyone whose eyes are not what they were. There may be more we could not measure. It is a colour change, not a rebuild.`
   },
   {

@@ -66,7 +66,11 @@ export function areaWeightPct (key) {
 export const AREA_MEANING = {
   performance:   'How long someone waits before they see anything.',
   mobile:        'What the site does on a phone, which is where most people will open it.',
-  accessibility: 'Whether someone using a screen reader, a keyboard, or a bad screen can use it.',
+  // Deliberately says "the barriers we check for". A score out of 100 beside the word
+  // "accessibility" reads as a percentage of a standard to anyone who has been sent a procurement
+  // questionnaire, and this tool checks eight specific things — it is not a conformance audit and
+  // must never be mistaken for one.
+  accessibility: 'The barriers we check for — a screen reader, a keyboard, a bad screen. Not a conformance audit.',
   seo:           'Whether search engines can tell what the business does and where it is.',
   trust:         'The signals that tell a visitor the site is current and safe to use.'
 }
