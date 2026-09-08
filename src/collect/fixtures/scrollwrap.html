@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A wide table done right, and a banner done wrong</title>
+<style>
+  body { margin: 0; font: 16px/1.4 sans-serif; color: #111; background: #fff; }
+  /* Done right: the table is 1400px but it scrolls inside its own window. It sticks out further
+     than anything else on the page and contributes nothing to the page's own sideways scroll.
+     Naming it as the offender would send a developer to fix the one thing already fixed. */
+  .scroller { overflow-x: auto; width: 100%; }
+  table.prices { width: 1400px; border-collapse: collapse; }
+  table.prices td { border: 1px solid #ccc; padding: 8px; }
+  /* Done wrong: 600px hard width, and this is what actually drags the page sideways. */
+  .banner { width: 600px; height: 80px; background: #eee; }
+</style>
+</head>
+<body>
+<h1>Rates</h1>
+<div class="scroller">
+  <table class="prices"><tr><td>Foundation</td><td>Framing</td><td>Roofing</td><td>Siding</td><td>Windows</td><td>Decks</td></tr></table>
+</div>
+<div class="banner">A banner with a hard 600px width.</div>
+</body>
+</html>

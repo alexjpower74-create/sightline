@@ -313,25 +313,62 @@ export function readScrollScript () {
   }
 }
 
-/** Which element is actually sticking out — evidence for the developer page. */
+/**
+ * Which element is actually sticking out. This names a thing in a document a business owner reads
+ * — "the widest thing on it is a table, at 900 pixels on a 390 pixel screen" — so naming the wrong
+ * element is worse than naming none.
+ *
+ * The trap is a horizontally scrollable wrapper. A table inside `overflow-x: auto` reports a box
+ * far wider than the screen and contributes nothing to the page's own sideways scroll: it scrolls
+ * inside its own little window, which is the correct fix, not the fault. Anything under a
+ * clipping or scrolling ancestor is therefore skipped.
+ */
 export function overflowCulpritScript (opts) {
   const width = opts.viewportWidth || document.documentElement.clientWidth
   const all = document.body ? document.body.getElementsByTagName('*') : []
   const limit = Math.min(all.length, opts.maxNodes || 3000)
+  const de = document.documentElement
+
+  const scrollsInsideSomething = el => {
+    let node = el.parentElement
+    let depth = 0
+    while (node && node !== de && depth++ < 24) {
+      const ox = getComputedStyle(node).overflowX
+      if (ox && ox !== 'visible') return true
+      node = node.parentElement
+    }
+    return false
+  }
+
   let worst = null
   for (let i = 0; i < limit; i++) {
     const el = all[i]
     const r = el.getBoundingClientRect()
     if (r.width <= 0 || r.height <= 0) continue
-    const past = Math.round(r.right + window.scrollX - width)
-    if (past <= 1) continue
-    if (!worst || past > worst.past) {
-      const id = el.id ? '#' + el.id : ''
-      const cls = typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''
-      worst = { past, selector: el.tagName.toLowerCase() + id + cls, widthPx: Math.round(r.width) }
-    }
+    const pastPx = Math.round(r.right + window.scrollX - width)
+    if (pastPx <= 1) continue
+    if (worst && pastPx <= worst.pastPx) continue
+    if (scrollsInsideSomething(el)) continue
+    const id = el.id ? '#' + el.id : ''
+    const cls = typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''
+    worst = { selector: el.tagName.toLowerCase() + id + cls, widthPx: Math.round(r.width), pastPx }
   }
   return worst
+}
+
+/**
+ * Signals that a refusal is bot protection rather than a broken site. Read alongside the response
+ * status and headers — a challenge title on its own is not enough, because a real page may well be
+ * called "Access denied".
+ */
+export function refusalSignalsScript () {
+  const srcs = [...document.querySelectorAll('script[src]')].slice(0, 40).map(s => s.src || '')
+  return {
+    title: (document.title || '').trim(),
+    challengeScript: srcs.some(u => /challenges\.cloudflare\.com|\/cdn-cgi\/challenge-platform|perimeterx|px-cloud|captcha|datadome|imperva|incapsula/i.test(u)),
+    challengeMarkup: !!document.querySelector('#cf-wrapper, #challenge-form, #challenge-running, #px-captcha, meta[name="captcha-bypass"], form[action*="captcha" i]'),
+    textLength: ((document.body && document.body.textContent) || '').trim().length
+  }
 }
 
 export function viewportMetaScript () {

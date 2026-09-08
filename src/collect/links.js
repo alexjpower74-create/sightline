@@ -2,7 +2,7 @@
 // inside the document would be shaped by the page's own CSP and service worker, and we want to
 // know what a visitor clicking the link gets, not what the page is allowed to ask for.
 
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Safari/537.36 Sightline/0.1'
+export const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Safari/537.36 Sightline/0.1'
 
 /**
  * HEAD each URL; anything that answers 4xx/5xx is broken.
@@ -21,7 +21,7 @@ export async function checkLinks (urls, { timeoutMs = 5000, concurrency = 6, max
       if (Date.now() > deadline) return
       const url = list[next++]
       const status = await probe(url, timeoutMs)
-      if (status !== null && status >= 400) broken.push({ url, status })
+      if (status !== null && (status === 'refused' || status >= 400)) broken.push({ url, status })
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, list.length) }, worker))
@@ -43,7 +43,9 @@ async function probe (url, timeoutMs) {
     } catch (e) {
       if (isTimeout(e)) return null
       if (method === 'HEAD') continue        // some servers just hang up on HEAD
-      return 599                             // connection refused / reset / redirect loop: broken
+      // Not an HTTP status, so do not invent one. The contract takes a string here, and
+      // "/contact-us.html (refused)" reads correctly in a document a client sees.
+      return 'refused'
     }
   }
   return null

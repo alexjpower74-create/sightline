@@ -8,9 +8,10 @@ import { suite } from '@alexpower/rig/harness/check.js'
 import { launch } from '@alexpower/rig/harness/cdp.js'
 import { startServer } from './server.js'
 import { evalFn, a11yScript } from './page-scripts.js'
+import { freePort } from './free-port.js'
 
 const server = await startServer()
-const browser = await launch({ headless: true, port: 9351 })
+const browser = await launch({ headless: true, port: await freePort() })
 const page = await browser.newPage(server.url('/contrast.html'), { width: 1440, height: 900, dpr: 1, mobile: false })
 
 const read = () => evalFn(page, a11yScript, {})
