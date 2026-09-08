@@ -35,6 +35,7 @@ goes red rather than passing quietly.
 ## Use
 
 ```console
+sightline serve                                                # open it in a browser
 sightline audit <url> [--name "Business"] [--by "Your Name"]   # one site
 sightline list <businesses.json> [--by "Your Name"]            # many, ranked
 sightline score <measurement.json>                             # re-score without re-visiting
@@ -43,6 +44,11 @@ sightline explain <measurement.json>                           # show the arithm
 
 Reports save to `~/Documents/Sightline`, in a dated folder per run. An HTML report and a PDF per
 business, full-resolution captures in `screenshots/`.
+
+`serve` is the one to show someone: paste an address, watch it work, and the report opens in the
+page with the PDF a click away. It binds to 127.0.0.1, serves nothing outside the reports folder,
+and keeps no state beyond the run. The command line is still the better tool for a list of fifteen
+— but nobody leans forward at a terminal.
 
 ## What it measures
 
