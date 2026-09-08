@@ -38,8 +38,14 @@ const stage = mkdtempSync(join(tmpdir(), 'sightline-layout-'))
 const DEMO = resolve(import.meta.dirname, 'demo', 'overflowing-site.html')
 const phone = await shoot(DEMO, join(stage, 'phone.png'), { clipWidth: 390, scale: 1, dpr: 2, maxHeight: 1700 })
 
+// A desktop capture too, because the page-3 screenshot columns only take their two-column shape
+// when both exist — and that is the shape in which the phone column ran off the right margin. A
+// mobile-only audit goes down a different branch and would have left this suite reporting a clean
+// page while the real one overflowed.
+const desktop = await shoot(DEMO, join(stage, 'desktop.png'), { width: 1440, height: 900, dpr: 2, mobile: false, maxHeight: 900 })
+
 const audit = sampleAudit('neglected')
-audit.measurement.screenshots = { mobile: phone, desktop: null }
+audit.measurement.screenshots = { mobile: phone, desktop }
 
 let page = null
 let browser = null
@@ -49,6 +55,14 @@ async function measure () {
     const r = el => { const b = el.getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height) } }
     const shot = document.querySelector('.shot.is-phone')
     const img = shot && shot.querySelector('img')
+    // Every framed screenshot in the document, page 3 included.
+    const frames = [...document.querySelectorAll('.shot')].map(f => {
+      const i = f.querySelector('img')
+      const fb = f.getBoundingClientRect(), ib = i ? i.getBoundingClientRect() : null
+      return { fw: Math.round(fb.width), fh: Math.round(fb.height),
+               iw: ib ? Math.round(ib.width) : null, ih: ib ? Math.round(ib.height) : null,
+               right: Math.round(fb.right) }
+    })
     return JSON.stringify({
       owner: r(document.getElementById('sheet-owner')),
       docOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -56,7 +70,9 @@ async function measure () {
       img: img ? r(img) : null,
       // What the image's own aspect would make it at the frame's width. The frame has to come out
       // shorter than this, or it is not cropping — it is being sized by the screenshot.
-      naturalAtWidth: img ? Math.round(r(shot).w * (img.naturalHeight / img.naturalWidth)) : null
+      naturalAtWidth: img ? Math.round(r(shot).w * (img.naturalHeight / img.naturalWidth)) : null,
+      frames,
+      pageWidth: document.documentElement.clientWidth
     })
   })()`))
 }
@@ -151,6 +167,38 @@ await suite('report / layout', async s => {
   // A good site has less to say and a dead one has almost nothing, so both must also fit — and the
   // dead one in particular must not somehow grow a second page out of an empty measurement table.
   // Red if: either sheet overruns. Control: pad the sheet past the page height.
+  // Red if: any screenshot frame anywhere in the document escapes the page, or lets its image
+  // escape the frame. The page-1 rail was fixed for this and page 3 was not — a 780px capture
+  // pushed the phone column past the right margin, which the sheet-height and sideways-overflow
+  // checks both missed, because the column overrun the printable width without extending the
+  // document's scroll width.
+  //
+  // The control removes the image sizing, which is the rule that actually holds this. That was
+  // worth measuring rather than guessing: the first control tried was `min-width: auto` on the
+  // column, on the theory that flexbox's content-based minimum was the culprit, and it changed
+  // nothing — the check came back VOID. Taking both away is what reproduces the overflow, so
+  // min-width: 0 is a second line of defence rather than the fix, and the comment in report.css
+  // now says so.
+  await s.check('every screenshot frame stays inside the page and inside its frame', {
+    timeout: 30_000,
+    assert: async () => {
+      const m = await measure()
+      if (m.frames.length < 2) return false
+      return m.frames.every(f =>
+        f.right <= m.pageWidth + 1 && f.iw <= f.fw + 1 && f.ih <= f.fh + 2)
+    },
+    breaks: async () => {
+      await page.eval(`(() => {
+        const st = document.createElement('style')
+        st.id = 'control-flex'
+        st.textContent = '.shot-pair .shot img{width:auto;height:auto}.shot-pair .col-narrow{min-width:auto}'
+        document.head.appendChild(st)
+        return 1
+      })()`)
+      return () => page.eval(`(() => { document.getElementById('control-flex')?.remove(); return 1 })()`)
+    }
+  })
+
   // The document is loaded before the check, never inside the assertion.
   //
   // Both of these were VOID on the first run for that reason: the assertion called load(), which

@@ -72,18 +72,54 @@ export const AREA_MEANING = {
 }
 
 /**
- * The page-1 statement when the site could not be reached. No score, no bars, no findings —
- * fabricating a number here would be the single fastest way to lose a room.
+ * Page 1 when there is no score.
+ *
+ * Three different things put us here and they are not the same thing, so they must not read the
+ * same way. A site that is genuinely down is the owner's problem and an urgent one. A site that
+ * turned our checker away is not a fault at all. A check that fell over on our end is OUR problem,
+ * and writing it up as theirs is how this tool told a real business its working site was down.
+ *
+ * The rule for the last two: the failure goes on us, in the first sentence, in plain words.
  */
-export function unreachableCopy (measurement) {
-  const err = measurement?.error || 'no response'
-  return {
+const NO_SCORE = {
+  unreachable: m => ({
+    accent: true,
     headline: 'We could not reach this site.',
-    body: `Every request we made to ${measurement?.url ?? 'the address'} failed (${err}). That is not a slow site or a bad score — as far as the outside world is concerned, there is nothing there.`,
+    body: `Every request we made to ${m?.url ?? 'the address'} failed (${m?.error || 'no response'}). That is not a slow site or a bad score — as far as the outside world is concerned, there is nothing there.`,
     consequence: 'Anyone who types the address in, clicks it from a search result, or taps it on a business card gets an error page. So does Google.',
     next: 'Before anything else, someone needs to check whether the domain is still registered and whether the hosting is still being paid for. Nothing else on a website matters until this is answered.',
-    noScore: 'We have deliberately not given this site a score. There was nothing to measure, and a number here would be invented.'
-  }
+    noScore: 'We have deliberately not given this site a score. There was nothing to measure, and a number here would be invented.',
+    attemptLabel: 'Result',
+    appendix: 'Not measured — the site did not respond, so every field here would be a zero we invented.'
+  }),
+
+  blocked: m => ({
+    accent: false,
+    headline: 'This site turned our checker away.',
+    body: 'Your website has protection that refuses automated visitors, and it refused ours along with the rest. That is often a deliberate and sensible setting.',
+    consequence: 'This says nothing about how your site behaves for a real customer. Ordinary visitors are not affected by it, and none of what follows should be read as a criticism of the site.',
+    next: 'This one has to be checked by hand rather than by the tool. It is a few minutes of someone opening the site on a phone and a laptop and going through the same list.',
+    noScore: 'There is no score here because we were not able to measure anything. Scoring a site we could not read would be guesswork wearing a number.',
+    attemptLabel: 'Response',
+    appendix: 'Not measured — the site declined to be read by an automated visitor.'
+  }),
+
+  'not-checked': m => ({
+    accent: false,
+    headline: 'Our check did not finish.',
+    body: `Something went wrong at our end while reading this site (${m?.error || 'checker failed'}). The site itself answers an ordinary request normally.`,
+    consequence: 'Nothing on this page is a finding about your website. We are telling you the check failed rather than quietly sending you a report built on a failure.',
+    next: 'We will run it again. Until then nobody should draw any conclusion about this site from this document, in either direction.',
+    noScore: 'There is no score because our own check failed, not because anything is wrong with the site. A number here would be our error presented as your problem.',
+    attemptLabel: 'Our error',
+    appendix: 'Not measured — our checker did not complete. This is a gap in our data, not a finding about the site.'
+  })
+}
+
+/** @param {string} band @param {object} measurement */
+export function noScoreCopy (band, measurement) {
+  const make = NO_SCORE[band] || NO_SCORE.unreachable
+  return make(measurement)
 }
 
 /** Human byte and millisecond formatting. Used in evidence, so it must never say "NaN". */

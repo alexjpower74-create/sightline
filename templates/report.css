@@ -237,12 +237,15 @@ p:last-child { margin-bottom: 0; }
   margin: 0 0 5mm;
 }
 .down .lede { font-size: 10.5pt; line-height: 1.55; margin-bottom: 5mm; }
+/* The accent is reserved for the one state that is actually the site's fault. Putting a red bar
+   beside "this says nothing about your website" is the document arguing with itself. */
 .down .consequence {
-  border-left: 1.2pt solid var(--accent);
+  border-left: 1.2pt solid var(--rule);
   padding-left: 4mm;
   font-size: 10pt; line-height: 1.5;
   margin-bottom: 6mm;
 }
+.down .consequence.is-fault { border-left-color: var(--accent); }
 .down .next { font-size: 9.5pt; color: var(--ink-2); margin-bottom: 6mm; }
 .no-score {
   border: .5pt solid var(--rule);
@@ -333,10 +336,20 @@ p:last-child { margin-bottom: 0; }
   text-transform: uppercase; color: var(--ink-3);
 }
 
-/* Desktop evidence gets the full column; it is a wide image and cropping it hides the point. */
-.shot.is-desktop { max-height: 120mm; }
+/* The page-3 evidence frames, all height-capped for the same reason the page-1 rail is.
+   A max-height alone does not do it: without a height on the image, object-fit has nothing to
+   crop against, the frame still stands at the image's full intrinsic height, and a 6000px phone
+   capture runs the sheet onto pages nobody asked for. Definite heights, images at 100%. */
 .shot-pair { display: flex; gap: 6mm; align-items: flex-start; margin-top: 2mm; }
 .shot-pair .col-wide { flex: 1 1 auto; min-width: 0; }
-.shot-pair .col-narrow { flex: 0 0 48mm; }
-/* A phone shot with no desktop shot beside it gets the column, capped so it cannot run a page. */
-.shot-pair .col-wide .shot:not(.is-desktop) { max-height: 150mm; }
+/* min-width: 0 here is a second line of defence, not the fix — measured, not assumed.
+   The rule that actually holds the image inside this column is the width/height pair on the image
+   below; with that in place the column stays at 48mm whether min-width is 0 or auto. It is only
+   when both are absent that a 780px capture takes the column past the right margin. Kept because
+   it costs nothing and the failure it guards against is invisible on screen. */
+.shot-pair .col-narrow { flex: 0 0 48mm; min-width: 0; }
+
+.shot.is-desktop { height: 88mm; }
+.shot-pair .col-narrow .shot { height: 132mm; }
+.shot-pair .col-wide .shot:not(.is-desktop) { height: 132mm; }
+.shot-pair .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }

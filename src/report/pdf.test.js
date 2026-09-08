@@ -13,10 +13,12 @@ import { renderPdf, htmlToPdf } from './pdf.js'
 import { renderHtml } from './html.js'
 import { sampleAudit } from './sample-audit.js'
 import { fontCss } from './assets.js'
+import { shoot } from './shoot.js'
+import { view } from './html.js'
 import { readFileSync, writeFileSync, existsSync, rmSync, mkdtempSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
 const stage = mkdtempSync(join(tmpdir(), 'sightline-pdftest-'))
 const TIMEOUT = 90_000
@@ -151,6 +153,65 @@ await suite('report / pdf', async s => {
       leaked = await launch({ headless: true, port: 9388 })
       await settledChromes()
       return async () => { if (leaked) { await leaked.close(); leaked = null } }
+    }
+  })
+
+  /* ── the size budget ──────────────────────────────────────────────────────────────────── */
+
+  // The whole point of the PDF is that a two-person shop attaches it to an email and sends it to a
+  // prospect they have never spoken to. 15 live audits averaged 6.7 MB of PDF and 7.9 MB of HTML,
+  // peaking at 12.2 MB. Most mail servers reject over 10 MB and plenty of corporate ones stop at 5,
+  // so those reports either bounce or arrive apologising for their own size.
+  //
+  // Red if: either artefact breaks 2 MB with screenshots embedded. The control turns compression
+  // off, which is the state that shipped — a budget that cannot fail is not a budget, and this one
+  // also goes red if sips silently stops working, which would restore the original bug in silence.
+  //
+  // Measured against a photo-heavy stand-in, not the flat-colour demo: gradients and continuous
+  // tone are what PNG is bad at and what real business sites are made of, and the cheap demo would
+  // let this pass without ever meeting the content that caused the problem.
+  const HEAVY = resolve(import.meta.dirname, 'demo', 'heavy-site.html')
+  const heavyShots = {
+    desktop: await shoot(HEAVY, join(stage, 'heavy-d.png'), { width: 1440, height: 900, dpr: 2, mobile: false, maxHeight: 900 }),
+    mobile: await shoot(HEAVY, join(stage, 'heavy-m.png'), { width: 390, height: 844, dpr: 2, mobile: true, clipWidth: 390, scale: 1, maxHeight: 4000 })
+  }
+  const BUDGET = 2 * 1024 * 1024
+  let compressImages = true
+  await s.check('a report with screenshots fits in an email', {
+    timeout: TIMEOUT,
+    assert: async () => {
+      const a = sampleAudit('neglected')
+      a.measurement.screenshots = { ...heavyShots }
+      const html = renderHtml(a, { compressImages })
+      const pdfPath = join(stage, 'budget.pdf')
+      await htmlToPdf(html, pdfPath)
+      const pdfBytes = readFileSync(pdfPath).length
+      const htmlBytes = Buffer.byteLength(html)
+      // Reported either way, so a run that only just fits is visible rather than a silent pass.
+      process.stdout.write(`        html ${(htmlBytes / 1048576).toFixed(2)} MB, pdf ${(pdfBytes / 1048576).toFixed(2)} MB\n`)
+      return htmlBytes < BUDGET && pdfBytes < BUDGET
+    },
+    breaks: () => {
+      compressImages = false
+      return () => { compressImages = true }
+    }
+  })
+
+  // Red if: the screenshots stop actually being re-encoded — the budget above can be met for the
+  // wrong reason if a capture happens to be small. Control: turn compression off.
+  await s.check('screenshots are re-encoded on the way into the document', {
+    timeout: TIMEOUT,
+    assert: () => {
+      const a = sampleAudit('neglected')
+      a.measurement.screenshots = { ...heavyShots }
+      const v = view(a, { compressImages })
+      if (!v.shots.mobile || !v.shots.desktop) return false
+      const src = readFileSync(heavyShots.mobile).length
+      return v.shots.mobile.compressed && v.shots.desktop.compressed && v.shots.mobile.bytes < src / 2
+    },
+    breaks: () => {
+      compressImages = false
+      return () => { compressImages = true }
     }
   })
 

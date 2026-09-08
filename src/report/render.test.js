@@ -13,7 +13,8 @@
 
 import { suite } from '@alexpower/rig/harness/check.js'
 import { renderHtml, view, esc } from './html.js'
-import { sampleAudit } from './sample-audit.js'
+import { sampleAudit, measurement } from './sample-audit.js'
+import { score } from '../score/index.js'
 import { STRONG_HEADLINE } from './copy.js'
 
 /** The document is three <article class="sheet"> elements; page-1 claims must be checked on page 1. */
@@ -87,6 +88,66 @@ await suite('report / render', async s => {
     breaks: () => {
       dead.measurement.ok = true
       return () => { dead.measurement.ok = false }
+    }
+  })
+
+  /* ── the three ways there is no score ───────────────────────────────────────────────────── */
+
+  // These are not the same thing and must never read the same way. A site that is down is the
+  // owner's problem. A site that turned our checker away is not a fault at all. A check that fell
+  // over on our end is OUR problem — and writing that up as theirs is how this tool told a real
+  // business its working site was down.
+  //
+  // Red if: either of the not-our-fault states starts using the language of the down page.
+  // Control: change the reason to a dns failure, which is genuinely the site being down, and
+  // require the down page's words to come back.
+  const noScoreStates = [
+    { reason: 'blocked', band: 'blocked', says: 'This site turned our checker away.' },
+    { reason: 'checker-error', band: 'not-checked', says: 'Our check did not finish.' }
+  ]
+  for (const st of noScoreStates) {
+    const m = { ...measurement('unreachable'), unreachableReason: st.reason, error: 'E_TEST' }
+    const audit = { business: { name: 'Test Ltd', url: 'https://t.test' }, measurement: m,
+                    generatedAt: '2026-09-08T14:00:00.000Z' }
+    const rescore = () => { const r = score(audit.measurement); audit.score = r.score; audit.findings = r.findings }
+    rescore()
+    await s.check(`a ${st.reason} site is not written up as a broken one`, {
+      assert: () => {
+        rescore()
+        const html = renderHtml(audit)
+        const p1 = sheet(html, 'owner')
+        return audit.score.band === st.band &&
+               p1.includes(inDoc(st.says)) &&
+               !p1.includes('We could not reach this site.') &&
+               // The one accent in this document means "at fault". A red bar beside "this says
+               // nothing about your website" is the page arguing with itself.
+               !p1.includes('consequence is-fault') &&
+               !SCORE_NUMERAL.test(html)
+      },
+      breaks: () => {
+        const before = audit.measurement.unreachableReason
+        audit.measurement.unreachableReason = 'dns'
+        return () => { audit.measurement.unreachableReason = before }
+      }
+    })
+  }
+
+  // Red if: the measurement appendix describes our own failure as a fact about the site.
+  // Control: the same swap to a genuine dns failure.
+  const failed = { business: { name: 'Test Ltd', url: 'https://t.test' },
+                   measurement: { ...measurement('unreachable'), unreachableReason: 'checker-error', error: 'E_TEST' },
+                   generatedAt: '2026-09-08T14:00:00.000Z' }
+  await s.check('the appendix blames our checker, not the site, when our checker failed', {
+    assert: () => {
+      const r = score(failed.measurement)
+      failed.score = r.score; failed.findings = r.findings
+      const p3 = sheet(renderHtml(failed), 'appendix')
+      return p3.includes('our checker did not complete') && !p3.includes('the site did not respond')
+    },
+    breaks: () => {
+      const before = failed.measurement.unreachableReason
+      failed.measurement.unreachableReason = 'dns'
+      return () => { failed.measurement.unreachableReason = before }
     }
   })
 
