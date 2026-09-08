@@ -12,6 +12,9 @@ const HELP = `sightline — audit a small business website, and say what it cost
   sightline list <businesses.json> [--by "Your Name"] [--out <folder>]
       Audit a list and print a ranked call list. Worst and most fixable first.
 
+  sightline serve [--port 5177] [--by "Your Name"]
+      Open Sightline in a browser. Paste an address, watch it work, read the report.
+
   sightline score <measurement.json>
       Score a measurement that was already collected.
 
@@ -57,6 +60,18 @@ try {
       const moved = tidyScreenshots(out)
       console.log(`\nsaved to  ${out}`)
       console.log(`  ${audits.length} reports${moved ? `, ${moved} screenshots in screenshots/` : ''}`)
+      break
+    }
+    case 'serve': {
+      const { serve } = await import('../src/app/server.js')
+      const port = Number(flag('--port', 5177))
+      const { url } = await serve({ port, preparedBy: preparedBy() })
+      console.log(`Sightline is running at ${url}`)
+      console.log('Paste a website address and press Audit it. Ctrl-C here to stop.\n')
+      if (!rest.includes('--no-open')) {
+        const { spawn } = await import('node:child_process')
+        spawn('open', [url], { stdio: 'ignore', detached: true }).unref()
+      }
       break
     }
     case 'score': {

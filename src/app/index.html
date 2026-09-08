@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sightline</title>
+<style>
+  :root{--bg:#0e1116;--panel:#141920;--line:#212832;--ink:#e8edf4;--dim:#8b96a6;--faint:#5c6673;
+        --accent:#3A8F8F;--good:#4ec9a0;--mid:#d6a75a;--bad:#e5645e;
+        --mono:ui-monospace,SFMono-Regular,Menlo,monospace;--sans:system-ui,-apple-system,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+  header{border-bottom:1px solid var(--line);padding:26px 32px;display:flex;align-items:baseline;gap:16px}
+  h1{font:700 22px/1 var(--sans);letter-spacing:-.02em;margin:0}
+  header .sub{color:var(--faint);font-size:14px}
+  main{max-width:1040px;margin:0 auto;padding:36px 32px 100px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  input,textarea,button{font:inherit}
+  input[type=text],textarea{flex:1;min-width:260px;background:var(--panel);border:1px solid var(--line);
+    border-radius:9px;padding:13px 15px;color:var(--ink);outline:none}
+  input[type=text]:focus,textarea:focus{border-color:var(--accent)}
+  textarea{width:100%;min-height:112px;font-family:var(--mono);font-size:13.5px;line-height:1.7;resize:vertical}
+  button{background:var(--accent);color:#04120f;border:0;border-radius:9px;padding:13px 26px;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.45;cursor:default}
+  button.ghost{background:transparent;color:var(--dim);border:1px solid var(--line);font-weight:500}
+  label{display:block;font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:26px 0 9px}
+  .tabs{display:flex;gap:4px;margin-bottom:8px}
+  .tabs button{background:transparent;border:1px solid transparent;color:var(--dim);padding:8px 15px;font-weight:600;font-size:14px;border-radius:8px}
+  .tabs button[aria-selected=true]{background:var(--panel);border-color:var(--line);color:var(--ink)}
+  .prog{margin:30px 0;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px 20px}
+  .bar{height:5px;background:#1c222c;border-radius:3px;overflow:hidden;margin-top:12px}
+  .bar i{display:block;height:100%;background:var(--accent);transition:width .35s ease}
+  .res{margin-top:14px;border-top:1px solid var(--line)}
+  .res a{display:flex;align-items:center;gap:14px;padding:13px 2px;border-bottom:1px solid var(--line);
+         text-decoration:none;color:inherit}
+  .res a:hover{background:#161c24}
+  .score{font:700 21px/1 var(--mono);width:62px;text-align:right;flex:none}
+  .s-good{color:var(--good)} .s-mid{color:var(--mid)} .s-bad{color:var(--bad)} .s-na{color:var(--faint);font-size:14px}
+  .who{flex:none;width:230px;font-weight:600}
+  .hook{color:var(--dim);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pdf{flex:none;color:var(--accent);font:600 12px/1 var(--mono)}
+  iframe{width:100%;height:78vh;border:1px solid var(--line);border-radius:11px;background:#fff;margin-top:18px}
+  .muted{color:var(--faint);font-size:14px}
+  .err{color:var(--bad)}
+  [hidden]{display:none!important}
+</style></head><body>
+
+<header>
+  <h1>Sightline</h1>
+  <span class="sub">audit a small business website, and say what it costs the owner</span>
+</header>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="one">One site</button>
+    <button role="tab" aria-selected="false" data-tab="many">A list</button>
+  </div>
+
+  <section id="pane-one">
+    <label for="url">Website address</label>
+    <div class="row">
+      <input type="text" id="url" placeholder="hilltopplumbing.example.ca" autocomplete="off" spellcheck="false">
+      <button id="go">Audit it</button>
+    </div>
+    <label for="name">Business name <span style="text-transform:none;letter-spacing:0;font-weight:400">— optional</span></label>
+    <div class="row"><input type="text" id="name" placeholder="Hilltop Plumbing" autocomplete="off"></div>
+  </section>
+
+  <section id="pane-many" hidden>
+    <label for="bulk">One business per line — <span style="text-transform:none;letter-spacing:0;font-weight:400">name, then the address</span></label>
+    <textarea id="bulk" spellcheck="false" placeholder="Hilltop Plumbing, hilltopplumbing.example.ca
+Bluebird Construction, bluebirdconstruction.ca
+Landmark Surveys, landmarksurveys.ca"></textarea>
+    <div class="row" style="margin-top:12px"><button id="goMany">Audit them all</button></div>
+  </section>
+
+  <label for="by">Signed by</label>
+  <div class="row"><input type="text" id="by" placeholder="Your name" autocomplete="off"></div>
+
+  <div class="prog" id="prog" hidden>
+    <div id="progText" class="muted">Starting…</div>
+    <div class="bar"><i id="progBar" style="width:0%"></i></div>
+    <div class="res" id="results"></div>
+  </div>
+
+  <div id="viewerWrap" hidden>
+    <div class="row" style="margin-top:26px;align-items:center">
+      <strong id="viewerName" style="flex:1"></strong>
+      <a id="pdfLink" href="#" target="_blank"><button class="ghost">Open the PDF</button></a>
+      <button class="ghost" id="closeViewer">Close</button>
+    </div>
+    <iframe id="viewer" title="Audit report"></iframe>
+  </div>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id)
+  let mode = 'one'
+
+  document.querySelectorAll('[role=tab]').forEach(t => t.onclick = () => {
+    mode = t.dataset.tab
+    document.querySelectorAll('[role=tab]').forEach(x => x.setAttribute('aria-selected', String(x === t)))
+    $('pane-one').hidden = mode !== 'one'
+    $('pane-many').hidden = mode !== 'many'
+  })
+
+  const tidy = u => { u = u.trim(); if (!u) return null; return /^https?:\/\//i.test(u) ? u : 'https://' + u }
+
+  function parseList (text) {
+    return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      const bits = line.split(',')
+      if (bits.length > 1) {
+        const url = tidy(bits.pop())
+        return url && { name: bits.join(',').trim(), url }
+      }
+      const url = tidy(line)
+      return url && { name: new URL(url).hostname.replace(/^www\./, ''), url }
+    }).filter(Boolean)
+  }
+
+  const cls = s => s === null || s === undefined ? 's-na' : s < 60 ? 's-bad' : s < 80 ? 's-mid' : 's-good'
+
+  function draw (job) {
+    $('progBar').style.width = (job.total ? (job.done / job.total) * 100 : 0) + '%'
+    $('progText').textContent = job.state === 'done'
+      ? `Finished — ${job.total} audited. Saved to ${job.folder}`
+      : `Auditing ${job.current || '…'}  (${job.done + 1} of ${job.total}) — this takes about half a minute each`
+    if (job.state === 'failed') { $('progText').innerHTML = '<span class="err">' + job.error + '</span>'; return }
+
+    const files = job.files || []
+    $('results').innerHTML = job.results.map(r => {
+      const f = files.find(x => x.name === r.name)
+      const label = r.band === 'error' ? 'err' : r.score === null ? (r.band === 'blocked' ? 'blocked' : 'n/c') : r.score
+      return `<a href="#" data-html="${f ? f.html : ''}" data-pdf="${f ? f.pdf : ''}" data-name="${r.name.replace(/"/g,'&quot;')}">
+        <span class="score ${cls(r.score)}">${label}</span>
+        <span class="who">${r.name}</span>
+        <span class="hook">${(r.hook || '').replace(/</g,'&lt;')}</span>
+        ${f ? '<span class="pdf">PDF</span>' : ''}
+      </a>`
+    }).join('')
+
+    $('results').querySelectorAll('a').forEach(a => a.onclick = e => {
+      e.preventDefault()
+      if (!a.dataset.html) return
+      const folder = encodeURIComponent(job.folder.split('/').pop())
+      $('viewerName').textContent = a.dataset.name
+      $('viewer').src = `/reports/${folder}/${a.dataset.html}`
+      $('pdfLink').href = `/reports/${folder}/${a.dataset.pdf}`
+      $('viewerWrap').hidden = false
+      $('viewerWrap').scrollIntoView({ behavior: 'smooth' })
+    })
+  }
+
+  $('closeViewer').onclick = () => { $('viewerWrap').hidden = true; $('viewer').src = 'about:blank' }
+
+  async function run (businesses) {
+    if (!businesses.length) { alert('Give me at least one website address.'); return }
+    $('go').disabled = $('goMany').disabled = true
+    $('prog').hidden = false
+    $('results').innerHTML = ''
+    $('viewerWrap').hidden = true
+    try {
+      const r = await fetch('/api/audit', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ businesses, preparedBy: $('by').value.trim() || undefined })
+      })
+      const { id, error } = await r.json()
+      if (error) throw new Error(error)
+      for (;;) {
+        const job = await (await fetch('/api/job/' + id)).json()
+        draw(job)
+        if (job.state !== 'running') break
+        await new Promise(r => setTimeout(r, 900))
+      }
+    } catch (e) {
+      $('progText').innerHTML = '<span class="err">' + e.message + '</span>'
+    } finally {
+      $('go').disabled = $('goMany').disabled = false
+    }
+  }
+
+  $('go').onclick = () => {
+    const url = tidy($('url').value)
+    if (!url) return alert('Type a website address first.')
+    run([{ name: $('name').value.trim() || new URL(url).hostname.replace(/^www\./, ''), url }])
+  }
+  $('goMany').onclick = () => run(parseList($('bulk').value))
+  $('url').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click() })
+
+  try { const by = localStorage.getItem('sightline.by'); if (by) $('by').value = by } catch {}
+  $('by').addEventListener('change', () => { try { localStorage.setItem('sightline.by', $('by').value) } catch {} })
+</script>
+</body></html>
