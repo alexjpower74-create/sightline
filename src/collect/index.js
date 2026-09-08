@@ -342,6 +342,9 @@ export const NETWORK_ERRORS = {
   'net::ERR_TOO_MANY_REDIRECTS': 'the site redirects to itself in a loop and never arrives',
   'net::ERR_CERT_COMMON_NAME_INVALID': 'the security certificate does not match this domain',
   'net::ERR_CERT_DATE_INVALID': 'the security certificate has expired',
+  'net::ERR_CERT_AUTHORITY_INVALID': 'the security certificate is not one browsers trust, so visitors see a full-page warning',
+  'net::ERR_CERT_REVOKED': 'the security certificate has been revoked',
+  'net::ERR_CERT_INVALID': 'the security certificate is not valid',
   'net::ERR_SSL_PROTOCOL_ERROR': 'the secure connection could not be established',
   'net::ERR_EMPTY_RESPONSE': 'the server answered with nothing at all',
   'net::ERR_ADDRESS_UNREACHABLE': 'the server could not be reached'

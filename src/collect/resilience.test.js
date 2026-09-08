@@ -11,6 +11,7 @@
 import { suite } from '@alexpower/rig/harness/check.js'
 import { launch } from '@alexpower/rig/harness/cdp.js'
 import { startServer } from './server.js'
+import { startTlsServer } from './tls.js'
 import { collect, describe as describeError, NETWORK_ERRORS } from './index.js'
 import { assertMeasurement } from '../contract.js'
 
@@ -111,6 +112,32 @@ await suite('resilience', async t => {
       return wellFormed(m) && m.ok === false && /gave up after 2500ms/.test(m.error) && elapsed < 6000
     },
     breaks: flip('hugeChunks', 5)     // small enough to finish well inside 2.5s
+  })
+
+  // RED IF: a certificate Chrome will not accept is measured as if it were the site. Headless
+  // fails the navigation outright rather than showing an interstitial, which is what we want — a
+  // screenshot of a browser warning page is not a screenshot of anybody's website.
+  await t.check('an untrusted certificate is reported as a certificate problem', {
+    assert: async () => {
+      let serveTls = true
+      const tls = await startTlsServer((req, res) => {
+        res.writeHead(200, { 'content-type': 'text/html' })
+        res.end('<!doctype html><html lang="en"><head><title>Behind a bad cert</title></head><body><h1>Hello</h1></body></html>')
+      })
+      try {
+        const m = await collect(tls.origin + '/', { browser, screenshots: false, checkLinks: false, timeoutMs: 20_000 })
+        return wellFormed(m) && m.ok === false && m.https.enabled === false &&
+          /certificate/.test(m.error) && m.error.includes('net::ERR_CERT') && m.seo.title === null
+      } finally { await tls.close() }
+    },
+    // Take the sentence out of the table the collector reads, so a real certificate failure comes
+    // back as raw Chrome-speak instead. This check exists because ERR_CERT_AUTHORITY_INVALID was
+    // missing from that table until a live probe against a self-signed cert turned it up.
+    breaks: () => {
+      const was = { ...NETWORK_ERRORS }
+      for (const k of Object.keys(NETWORK_ERRORS)) if (k.includes('CERT')) delete NETWORK_ERRORS[k]
+      return () => { Object.assign(NETWORK_ERRORS, was) }
+    }
   })
 
   // RED IF: net:: codes reach the report, or a code we have no sentence for gets explained away

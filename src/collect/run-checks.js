@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const suites = ['contrast.test.js', 'collect.test.js', 'resilience.test.js']
+const suites = ['contrast.test.js', 'collect.test.js', 'https.test.js', 'resilience.test.js']
 
 let bad = 0
 for (const s of suites) {
