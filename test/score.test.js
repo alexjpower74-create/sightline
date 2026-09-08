@@ -6,6 +6,7 @@ import { suite } from '@alexpower/rig/harness/check.js'
 import { score, rank, stack, SCORING } from '../src/score/index.js'
 import { readFileSync } from 'node:fs'
 import { RULES } from '../src/score/rules.js'
+import { AREAS } from '../src/contract.js'
 import { writeFileSync, readFileSync as rf } from 'node:fs'
 
 // Several controls repair the fixture on disk, because `load()` reads from disk — that is the
@@ -134,4 +135,167 @@ await suite('scoring', async t => {
       return () => writeFileSync(NEGLECTED, ORIGINAL_NEGLECTED)
     }
   })
+})
+
+// ------------------------------------------------------------------------------------------------
+// Regressions found by the collector slice, not by this one. Each of these was a real wrong answer.
+// ------------------------------------------------------------------------------------------------
+
+const BLOCKED = fx('blocked')
+const ORIGINAL_BLOCKED = rf(BLOCKED, 'utf8')
+
+await suite('not lying to the owner', async t => {
+
+  // Setup, not assertion: put a site whose load event never fired on disk, and leave it there for
+  // the duration of the check. The assert must READ that state, never impose it — an assert that
+  // rewrites the fixture wipes out the negative control and marks itself void.
+  {
+    const stalled = load('solid'); stalled.timing.loadMs = 0
+    writeFileSync(SOLID, JSON.stringify(stalled, null, 2))
+  }
+
+  await t.check('a page whose load event never fired is NOT congratulated on its speed', {
+    // This shipped. loadMs of 0 means the event never fired, and the rule read it as instant:
+    // 97/100 and "Your site loads quickly" for a page that never stops spinning.
+    assert: () => !score(load('solid')).findings.some(f => f.id === 'good-speed'),
+    // Give the same fixture a real load time and the compliment must come back — otherwise this
+    // check would pass simply because the rule never fires at all.
+    breaks: () => {
+      const m = load('solid'); m.timing.loadMs = 1200
+      writeFileSync(SOLID, JSON.stringify(m, null, 2))
+      return () => { const s = load('solid'); s.timing.loadMs = 0; writeFileSync(SOLID, JSON.stringify(s, null, 2)) }
+    }
+  })
+
+  await t.check('a page that never finishes loading is told so', {
+    assert: () => score(load('solid')).findings.some(f => f.id === 'load-never-finishes'),
+    breaks: () => {
+      const removed = RULES.filter(r => r.id === 'load-never-finishes')
+      for (const r of removed) RULES.splice(RULES.indexOf(r), 1)
+      return () => RULES.push(...removed)
+    }
+  })
+
+  writeFileSync(SOLID, ORIGINAL_SOLID)   // end of the stalled-load setup
+
+  await t.check('a site that BLOCKED the checker is not reported as down', {
+    // Bot protection turning away an automated visitor says nothing about whether customers can
+    // reach the site. Telling an owner their working site is down is the worst thing we could do.
+    assert: () => {
+      const s = score(load('blocked')).score
+      const f = score(load('blocked')).findings[0]
+      return s.band === 'blocked' && s.overall === null &&
+             f.severity !== 'critical' && !/did not respond|error page/i.test(f.plainEnglish)
+    },
+    breaks: () => {
+      const m = load('blocked'); m.unreachableReason = 'dns'
+      writeFileSync(BLOCKED, JSON.stringify(m, null, 2))
+      return () => writeFileSync(BLOCKED, ORIGINAL_BLOCKED)
+    }
+  })
+
+  await t.check('the overflow finding names what to fix, not just how bad it is', {
+    assert: () => {
+      const f = score(load('neglected')).findings.find(x => x.id === 'horizontal-overflow')
+      return /a table/.test(f.plainEnglish) && /900 pixels/.test(f.plainEnglish)
+    },
+    breaks: () => {
+      const m = load('neglected'); m.mobile.overflowCulprit = null
+      writeFileSync(NEGLECTED, JSON.stringify(m, null, 2))
+      return () => writeFileSync(NEGLECTED, ORIGINAL_NEGLECTED)
+    }
+  })
+
+  await t.check('contrast wording never claims to be a complete list', {
+    // The collector drops nodes it cannot resolve, so the count is a floor. Saying "12 pieces of
+    // text" when the real number could be forty is a claim we cannot support in front of a client.
+    assert: () => {
+      const f = score(load('neglected')).findings.find(x => x.id === 'low-contrast')
+      return /at least/i.test(f.plainEnglish) && /could not measure/i.test(f.plainEnglish)
+    },
+    breaks: () => {
+      const m = load('neglected'); m.a11y.lowContrastNodes = 0
+      writeFileSync(NEGLECTED, JSON.stringify(m, null, 2))
+      return () => writeFileSync(NEGLECTED, ORIGINAL_NEGLECTED)
+    }
+  })
+
+  await t.check('an untrusted certificate is its own finding, not a substring of an error', {
+    assert: () => {
+      const m = load('solid'); m.https.certificateProblem = 'net::ERR_CERT_DATE_INVALID (expired 2024-11-02)'
+      writeFileSync(SOLID, JSON.stringify(m, null, 2))
+      try { return score(load('solid')).findings.some(f => f.id === 'certificate-problem') }
+      finally { writeFileSync(SOLID, ORIGINAL_SOLID) }
+    },
+    breaks: () => {
+      const removed = RULES.filter(r => r.id === 'certificate-problem')
+      for (const r of removed) RULES.splice(RULES.indexOf(r), 1)
+      return () => RULES.push(...removed)
+    }
+  })
+})
+
+// ------------------------------------------------------------------------------------------------
+// Found on the first live run against real Newfoundland businesses, not by any fixture.
+// ------------------------------------------------------------------------------------------------
+
+await suite('never accuse a working site', async t => {
+
+  // Setup, not assertion. The assert must READ this state, never write it — an assert that
+  // rewrites the fixture destroys its own negative control. That mistake has now been made three
+  // times in this file, which is itself the argument for the harness refusing to call it green.
+  {
+    const m = load('unreachable')
+    m.unreachableReason = 'checker-error'
+    m.error = 'net::ERR_HTTP2_PROTOCOL_ERROR from Chrome; plain request returned 200'
+    writeFileSync(UNREACHABLE, JSON.stringify(m, null, 2))
+  }
+
+  await t.check('a checker-side failure is not written up as the site being down', {
+    // a live site. Chrome returned ERR_HTTP2_PROTOCOL_ERROR; curl returned 200 in 1.3s. The
+    // report told a real business their site was down. It was not.
+    assert: () => {
+      const { score: s, findings } = score(load('unreachable'))
+      return s.band === 'not-checked' && s.overall === null &&
+             findings[0].severity !== 'critical' &&
+             !/did not respond|error page|could not reach your website/i.test(findings[0].plainEnglish) &&
+             /limitation on our end/i.test(findings[0].plainEnglish)
+    },
+    // Call the same failure a DNS failure and it must be reported as down again — otherwise this
+    // check would pass simply by never accusing anyone of anything.
+    breaks: () => {
+      const m = load('unreachable'); m.unreachableReason = 'dns'
+      writeFileSync(UNREACHABLE, JSON.stringify(m, null, 2))
+      return () => {
+        const r = load('unreachable'); r.unreachableReason = 'checker-error'
+        writeFileSync(UNREACHABLE, JSON.stringify(r, null, 2))
+      }
+    }
+  })
+
+  writeFileSync(UNREACHABLE, ORIGINAL_UNREACHABLE)
+
+  {
+    const m = load('solid')
+    m.mobile.hasViewportMeta = false; m.mobile.viewportContent = null
+    writeFileSync(SOLID, JSON.stringify(m, null, 2))
+  }
+
+  await t.check('one catastrophic area cannot be averaged away by four healthy ones', {
+    // A real site that does not work on a phone at all was scoring 72, because its SEO was tidy
+    // and mobile is only a quarter of the weighting. Nobody ranking prospects would call that a 72.
+    assert: () => {
+      const s = score(load('solid')).score
+      return s.overall < 60 && s.overall <= s.areas.mobile + SCORING.worstAreaHeadroom
+    },
+    // Lift the cap and the plain weighted average comes back, well above 60. This breaks the
+    // mechanism under test rather than the input, which is the point.
+    breaks: () => {
+      const was = SCORING.worstAreaHeadroom
+      SCORING.worstAreaHeadroom = 100
+      return () => { SCORING.worstAreaHeadroom = was }
+    }
+  })
+
+  writeFileSync(SOLID, ORIGINAL_SOLID)
 })

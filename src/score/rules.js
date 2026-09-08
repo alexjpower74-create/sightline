@@ -15,11 +15,24 @@ import { SEVERITY } from '../contract.js'
 const bytes = n => n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} KB`
 const secs = ms => `${(ms / 1000).toFixed(1)} seconds`
 
+/** Turn a CSS selector into something an owner can picture, without pretending to more than we know. */
+function describe (selector) {
+  const s = selector.toLowerCase()
+  if (/table/.test(s)) return 'a table'
+  if (/img|image|photo|gallery|carousel|slider/.test(s)) return 'an image'
+  if (/nav|menu/.test(s)) return 'the menu'
+  if (/video|iframe|map|embed/.test(s)) return 'an embedded video or map'
+  if (/header|hero|banner/.test(s)) return 'the banner at the top'
+  if (/footer/.test(s)) return 'the footer'
+  if (/form/.test(s)) return 'a form'
+  return `an element (${selector})`
+}
+
 export const RULES = [
 
   // ---- Phones -------------------------------------------------------------------------------
   {
-    id: 'no-viewport-meta', area: 'mobile', severity: SEVERITY.CRITICAL, penalty: 55, effort: 'moderate',
+    id: 'no-viewport-meta', area: 'mobile', severity: SEVERITY.CRITICAL, penalty: 85, effort: 'moderate',
     title: 'Site was never set up for phones',
     when: m => !m.mobile.hasViewportMeta,
     evidence: () => 'no viewport meta tag — the page is served to phones at desktop width',
@@ -29,8 +42,12 @@ export const RULES = [
     id: 'horizontal-overflow', area: 'mobile', severity: SEVERITY.CRITICAL, penalty: 40, effort: 'moderate',
     title: 'Page slides sideways on a phone',
     when: m => m.mobile.horizontalOverflowPx > 8,
-    evidence: m => `${m.mobile.horizontalOverflowPx}px of horizontal scroll at 390px wide`,
-    plainEnglish: () => 'On a phone your page is wider than the screen, so it slides side to side while people try to read it. It reads as broken even to visitors who could not tell you why.'
+    evidence: m => m.mobile.overflowCulprit
+      ? `${m.mobile.horizontalOverflowPx}px of horizontal scroll at 390px; widest offender ${m.mobile.overflowCulprit.selector} at ${m.mobile.overflowCulprit.widthPx}px`
+      : `${m.mobile.horizontalOverflowPx}px of horizontal scroll at 390px wide`,
+    plainEnglish: m => m.mobile.overflowCulprit
+      ? `On a phone your page is wider than the screen, so it slides side to side while people try to read it. The widest thing on it is ${describe(m.mobile.overflowCulprit.selector)}, at ${m.mobile.overflowCulprit.widthPx} pixels on a 390 pixel screen.`
+      : 'On a phone your page is wider than the screen, so it slides side to side while people try to read it. It reads as broken even to visitors who could not tell you why.'
   },
   {
     id: 'tap-targets-small', area: 'mobile', severity: SEVERITY.MAJOR, penalty: 18, effort: 'moderate',
@@ -41,6 +58,16 @@ export const RULES = [
   },
 
   // ---- Speed --------------------------------------------------------------------------------
+  {
+    id: 'load-never-finishes', area: 'performance', severity: SEVERITY.CRITICAL, penalty: 40, effort: 'moderate',
+    title: 'Page never finishes loading',
+    // loadMs of 0 means the event never fired, NOT that the page was instant. Half the small
+    // business web has one request hanging behind an analytics tag: the page looks fine, the
+    // spinner never stops, and every timing number stays at zero.
+    when: m => m.timing.loadMs === 0,
+    evidence: () => 'the load event never fired — something on the page is still waiting',
+    plainEnglish: () => 'Something on your site never finishes loading. The page usually looks fine, but the browser keeps spinning, and anything set to happen once the page is ready — a form, a map, a booking widget — may simply never start.'
+  },
   {
     id: 'page-far-too-heavy', area: 'performance', severity: SEVERITY.CRITICAL, penalty: 45, effort: 'moderate',
     title: 'Page is enormous',
@@ -79,6 +106,13 @@ export const RULES = [
     plainEnglish: () => 'Chrome and Safari label your site "Not secure" in the address bar. Nothing is actually wrong with your business — the certificate is usually free and takes an hour — but every visitor sees that warning before they see your work.'
   },
   {
+    id: 'certificate-problem', area: 'trust', severity: SEVERITY.CRITICAL, penalty: 45, effort: 'quick',
+    title: 'Security certificate is not trusted',
+    when: m => !!m.https.certificateProblem,
+    evidence: m => m.https.certificateProblem,
+    plainEnglish: () => 'Your site has a security certificate, but browsers do not trust it — usually because it has expired. Visitors get a full red warning page telling them the site may be unsafe, and most will not click past it.'
+  },
+  {
     id: 'stale-copyright', area: 'trust', severity: SEVERITY.MAJOR, penalty: 25, effort: 'quick',
     title: 'Site looks abandoned',
     when: m => m.freshness.copyrightYear !== null && (new Date().getFullYear() - m.freshness.copyrightYear) >= 3,
@@ -89,7 +123,7 @@ export const RULES = [
     id: 'broken-links', area: 'trust', severity: SEVERITY.MAJOR, penalty: 20, effort: 'quick',
     title: 'Links that go nowhere',
     when: m => m.freshness.brokenLinks.length > 0,
-    evidence: m => `${m.freshness.brokenLinks.length} broken link(s): ${m.freshness.brokenLinks.slice(0, 3).join(', ')}`,
+    evidence: m => `${m.freshness.brokenLinks.length} broken link(s): ${m.freshness.brokenLinks.slice(0, 3).map(l => `${l.url} (${l.status})`).join(', ')}`,
     plainEnglish: m => `${m.freshness.brokenLinks.length} link${m.freshness.brokenLinks.length === 1 ? '' : 's'} on your site lead to a "page not found" error. One of them is usually the one somebody clicked to reach you.`
   },
 
@@ -164,9 +198,12 @@ export const RULES = [
   {
     id: 'low-contrast', area: 'accessibility', severity: SEVERITY.MAJOR, penalty: 22, effort: 'moderate',
     title: 'Text is too faint to read',
-    when: m => m.a11y.lowContrastNodes >= 5,
-    evidence: m => `${m.a11y.lowContrastNodes} text nodes below WCAG AA contrast`,
-    plainEnglish: () => 'Some of your text is too pale against its background to read comfortably — outdoors, on an older screen, or by anyone whose eyes are not what they were. It is a colour change, not a rebuild.'
+    // The collector drops any node whose background it cannot resolve — images, gradients,
+    // transparent ancestors — so this count undercounts, and only ever in one direction. The
+    // threshold is low because of that, and the wording never claims to be a complete list.
+    when: m => m.a11y.lowContrastNodes >= 3,
+    evidence: m => `at least ${m.a11y.lowContrastNodes} text node(s) below WCAG AA contrast (a floor — nodes over images or transparency are not counted)`,
+    plainEnglish: m => `At least ${m.a11y.lowContrastNodes} pieces of text on your site are too pale against their background to read comfortably — outdoors, on an older screen, or by anyone whose eyes are not what they were. There may be more we could not measure. It is a colour change, not a rebuild.`
   },
   {
     id: 'no-lang', area: 'accessibility', severity: SEVERITY.MINOR, penalty: 10, effort: 'quick',
@@ -203,7 +240,9 @@ export const RULES = [
   {
     id: 'good-speed', area: 'performance', severity: SEVERITY.GOOD, penalty: 0, effort: 'quick',
     title: 'Loads quickly',
-    when: m => m.timing.loadMs <= 2500 && m.weight.totalBytes <= 2.5e6,
+    // `> 0` is load-bearing: a page whose load event never fired reports 0 and must never be
+    // congratulated on its speed.
+    when: m => m.timing.loadMs > 0 && m.timing.loadMs <= 2500 && m.weight.totalBytes <= 2.5e6,
     evidence: m => `${secs(m.timing.loadMs)}, ${bytes(m.weight.totalBytes)}`,
     plainEnglish: () => 'Your site loads quickly, which visitors notice even if they never mention it.'
   }
