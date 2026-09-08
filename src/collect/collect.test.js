@@ -16,13 +16,14 @@ import { startServer } from './server.js'
 import { collect } from './index.js'
 import { pngSize } from './screenshot.js'
 import { siteFiles } from './links.js'
+import { freePort } from './free-port.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const FIX = join(here, 'fixtures')
 const OUT = join(here, '..', '..', 'out', 'test-shots')
 
 const server = await startServer()
-const browser = await launch({ headless: true, port: 9371 })
+const browser = await launch({ headless: true, port: await freePort() })
 
 // Any fixture we edit is restored even if this process dies partway through a check.
 const originals = new Map()
@@ -158,6 +159,27 @@ await suite('collector', async t => {
     breaks: editing('long.html', s => s.replace("document.getElementById('slot').appendChild(d)", 'void d'))
   })
 
+  // RED IF: the report can only say "your page overflows by 510px" — a complaint — instead of
+  // naming the thing to fix.
+  await t.check('names the element that is actually dragging the page sideways', {
+    assert: async () => {
+      const c = (await measure('/bad.html')).mobile.overflowCulprit
+      return c && c.selector === 'div.wide-table' && c.widthPx === 900 && c.pastPx === 510
+    },
+    breaks: editing('bad.html', s => s.replace('.wide-table { width: 900px;', '.wide-table { width: 300px;'))
+  })
+
+  // RED IF: the widest box wins regardless of context. The 1400px table on this page scrolls
+  // inside its own window — it sticks out further than anything else and contributes nothing to
+  // the page's sideways scroll. Naming it sends a developer to fix the one thing already fixed.
+  await t.check('does not blame a wide table that scrolls inside its own window', {
+    assert: async () => {
+      const m = await measure('/scrollwrap.html')
+      return m.mobile.horizontalOverflowPx === 210 && m.mobile.overflowCulprit?.selector === 'div.banner'
+    },
+    breaks: editing('scrollwrap.html', s => s.replace('.scroller { overflow-x: auto; width: 100%; }', '.scroller { width: 100%; }'))
+  })
+
   // ---- tap targets ------------------------------------------------------------------------------
 
   // RED IF: tap targets are measured by getBoundingClientRect. Two of the four small links on this
@@ -225,11 +247,13 @@ await suite('collector', async t => {
     breaks: editing('bad.html', s => s.replace('&copy; 2011 Somebody', '&copy; 2026 Somebody'))
   })
 
-  // RED IF: same-origin links are not actually requested. Both of these answer 404.
-  await t.check('finds the links that are dead', {
+  // RED IF: same-origin links are not actually requested, or the status is lost on the way. The
+  // report renders "url (status)", so a link that is dead has to say how.
+  await t.check('finds the links that are dead, and what they answered', {
     assert: async () => {
       const b = (await measure('/bad.html')).freshness.brokenLinks
-      return b.length === 2 && b.includes('/gone') && b.includes('/nowhere.html')
+      return b.length === 2 && b.every(l => l.status === 404) &&
+        b.some(l => l.url === '/gone') && b.some(l => l.url === '/nowhere.html')
     },
     breaks: editing('bad.html', s => s.replace('href="/nowhere.html"', 'href="/good.html"'))
   })

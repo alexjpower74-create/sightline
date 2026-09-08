@@ -29,6 +29,9 @@ export async function startServer (options = {}) {
   const cfg = {
     robots: true, sitemap: true, softFiles: false,
     boomStatus: 500, loopHops: Infinity, hangCloses: false, hugeChunks: 44_000,
+    blockedMode: 'blocked',      // 'blocked' | 'plain404'
+    goneStatus: 404,
+    challengeMode: 'challenge',  // 'challenge' | 'real'
     ...options
   }
   const hanging = new Set()
@@ -42,7 +45,28 @@ export async function startServer (options = {}) {
       res.writeHead(cfg.boomStatus, { 'content-type': 'text/html' })
       return res.end(cfg.boomStatus >= 400 ? '<h1>Internal Server Error</h1>' : '<!doctype html><html lang="en"><head><title>Recovered</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main><h1>Back up</h1></main></body></html>')
     }
-    if (p === '/gone') { res.writeHead(404, { 'content-type': 'text/html' }); return res.end('<h1>Not found</h1>') }
+    if (p === '/gone') { res.writeHead(cfg.goneStatus, { 'content-type': 'text/html' }); return res.end('<h1>Not found</h1>') }
+
+    // Bot protection turning an automated visitor away. Not a broken site, and the collector must
+    // never report it as one.
+    if (p === '/blocked') {
+      if (cfg.blockedMode === 'plain404') {
+        res.writeHead(404, { 'content-type': 'text/html' })
+        return res.end('<!doctype html><html lang="en"><head><title>Page not found</title></head><body><h1>Not found</h1></body></html>')
+      }
+      res.writeHead(403, { 'content-type': 'text/html', 'cf-ray': '8a1f2c3d4e5f6789-YYZ', server: 'cloudflare' })
+      return res.end('<!doctype html><html lang="en"><head><title>Attention Required! | Cloudflare</title></head><body><div id="cf-wrapper">Sorry, you have been blocked.</div></body></html>')
+    }
+    // The harder one: a 200 that is really a waiting room.
+    if (p === '/challenge') {
+      if (cfg.challengeMode === 'real') {
+        res.writeHead(200, { 'content-type': 'text/html' })
+        return res.end('<!doctype html><html lang="en"><head><title>Access Denied — our policy page</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main><h1>Access Denied</h1><p>' + 'This page explains our access policy in some detail. '.repeat(80) + '</p></main></body></html>')
+      }
+      res.writeHead(200, { 'content-type': 'text/html', 'cf-ray': '8a1f2c3d4e5f6789-YYZ' })
+      return res.end('<!doctype html><html lang="en"><head><title>Just a moment...</title></head><body><div id="challenge-form">Checking your browser</div><script src="/cdn-cgi/challenge-platform/h/b/orchestrate/jsch/v1"></script></body></html>')
+    }
+    if (p.startsWith('/cdn-cgi/')) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end('/* challenge */') }
     if (p.startsWith('/loop')) {
       const n = Number(url.searchParams.get('n') || 0)
       if (n >= cfg.loopHops) { res.writeHead(302, { location: '/good.html' }); return res.end() }

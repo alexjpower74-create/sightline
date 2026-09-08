@@ -8,6 +8,7 @@
 
 import { createServer } from 'node:http'
 import { chromeWrapperPath, startTlsServer } from './tls.js'
+import { freePort } from './free-port.js'
 
 process.env.RIG_CHROME = chromeWrapperPath()
 
@@ -42,7 +43,7 @@ await new Promise(r => plain.listen(0, '127.0.0.1', r))
 const plainOrigin = `http://127.0.0.1:${plain.address().port}`
 secureBody = `<img src="${plainOrigin}/logo.png" alt="A boat">`
 
-const browser = await launch({ headless: true, port: 9391 })
+const browser = await launch({ headless: true, port: await freePort() })
 const run = url => collect(url, { browser, screenshots: false, checkLinks: false, timeoutMs: 25_000 })
 
 await suite('https and mixed content', async t => {

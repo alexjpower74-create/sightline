@@ -12,11 +12,12 @@ import { suite } from '@alexpower/rig/harness/check.js'
 import { launch } from '@alexpower/rig/harness/cdp.js'
 import { startServer } from './server.js'
 import { startTlsServer } from './tls.js'
-import { collect, describe as describeError, NETWORK_ERRORS } from './index.js'
+import { collect, describe as describeError, NETWORK_ERRORS, classifyRefusal } from './index.js'
 import { assertMeasurement } from '../contract.js'
+import { freePort } from './free-port.js'
 
 const server = await startServer()
-const browser = await launch({ headless: true, port: 9381 })
+const browser = await launch({ headless: true, port: await freePort() })
 
 const runs = new Map()
 function measure (path, opts = {}) {
@@ -109,9 +110,49 @@ await suite('resilience', async t => {
       const started = Date.now()
       const m = await collect(server.url('/huge'), { browser, screenshots: false, timeoutMs: 2500 })
       const elapsed = Date.now() - started
-      return wellFormed(m) && m.ok === false && /gave up after 2500ms/.test(m.error) && elapsed < 6000
+      // The budget covers the measurement; confirming with a plain request is allowed a further
+      // 5s on top, because never calling a live site dead is worth one more request.
+      return wellFormed(m) && m.ok === false && /gave up after 2500ms/.test(m.error) && elapsed < 10_000
     },
     breaks: flip('hugeChunks', 5)     // small enough to finish well inside 2.5s
+  })
+
+  // ---- turned away is not the same as down -------------------------------------------------
+  //
+  // Telling a business owner their working site is down is the single worst thing this tool can
+  // do. Worse than missing a finding, worse than a wrong score. These three checks are the guard.
+
+  // RED IF: bot protection is reported as a broken site.
+  await t.check('bot protection is a refusal, not a site being down', {
+    assert: async () => {
+      const m = await measure('/blocked')
+      return wellFormed(m) && m.ok === false && m.unreachableReason === 'blocked' &&
+        /refused/.test(m.error) && m.seo.title === null
+    },
+    breaks: flip('blockedMode', 'plain404')
+  })
+
+  // RED IF: a challenge page that answers 200 is measured as if it were the site. The owner would
+  // be shown a score for a Cloudflare waiting room.
+  await t.check('a 200 that is really a waiting room is a refusal, not a page', {
+    assert: async () => {
+      const m = await measure('/challenge')
+      // Nothing about the waiting room may be recorded as if it described the business.
+      return wellFormed(m) && m.ok === false && m.unreachableReason === 'blocked' &&
+        m.seo.title === null && m.mobile.hasViewportMeta === false && m.a11y.imagesTotal === 0
+    },
+    breaks: flip('challengeMode', 'real')
+  })
+
+  // RED IF: the refusal test is so eager that a genuinely broken page is excused. A 404 is an
+  // http error and has to keep saying so — including on a page whose title is "Access Denied".
+  await t.check('a genuine 404 is an http error, not a refusal', {
+    assert: async () => {
+      const m = await measure('/gone')
+      const realPage = classifyRefusal(200, {}, { title: 'Access Denied', textLength: 6000 })
+      return wellFormed(m) && m.unreachableReason === 'http-error' && realPage === null
+    },
+    breaks: flip('goneStatus', 403)
   })
 
   // RED IF: a certificate Chrome will not accept is measured as if it were the site. Headless
@@ -127,7 +168,8 @@ await suite('resilience', async t => {
       try {
         const m = await collect(tls.origin + '/', { browser, screenshots: false, checkLinks: false, timeoutMs: 20_000 })
         return wellFormed(m) && m.ok === false && m.https.enabled === false &&
-          /certificate/.test(m.error) && m.error.includes('net::ERR_CERT') && m.seo.title === null
+          /certificate/.test(m.error) && m.error.includes('net::ERR_CERT') && m.seo.title === null &&
+          m.unreachableReason === 'tls' && /^net::ERR_CERT/.test(m.https.certificateProblem || '')
       } finally { await tls.close() }
     },
     // Take the sentence out of the table the collector reads, so a real certificate failure comes

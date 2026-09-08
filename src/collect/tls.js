@@ -5,6 +5,7 @@
 // repository would be both a bad habit and a test that starts failing the day it expires.
 
 import { createServer } from 'node:https'
+import { createServer as createTlsServer } from 'node:tls'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -47,4 +48,35 @@ export async function startTlsServer (handler, cert = makeCert()) {
  */
 export function chromeWrapperPath () {
   return join(dirname(fileURLToPath(import.meta.url)), 'chrome-ignoring-cert-errors.sh')
+}
+
+/**
+ * A server that negotiates HTTP/2 and then talks nonsense, while serving perfectly good HTTP/1.1
+ * to anything that asks for it.
+ *
+ * This is the shape of the a live site failure: Chrome prefers h2, cannot make sense of what
+ * comes back, and gives up with ERR_HTTP2_PROTOCOL_ERROR — while curl, which asks for HTTP/1.1,
+ * gets a 200 in a second and a bit. The site is fine. The browser is not.
+ */
+export async function startBrokenHttp2Server ({ http1Works = true } = {}, cert = makeCert()) {
+  const cfg = { http1Works }
+  const body = '<!doctype html><html lang="en"><head><title>Young\'s Refrigeration</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main><h1>Industrial refrigeration</h1><p>Serving central Newfoundland since 1978.</p></main></body></html>'
+
+  const server = createTlsServer({ key: cert.key, cert: cert.cert, ALPNProtocols: ['h2', 'http/1.1'] }, socket => {
+    if (socket.alpnProtocol === 'h2') {
+      socket.write('GARBAGE that is not an HTTP/2 frame\r\n\r\n')
+      return socket.end()
+    }
+    if (!cfg.http1Works) return socket.destroy()
+    socket.once('data', () => {
+      socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ${Buffer.byteLength(body)}\r\nConnection: close\r\n\r\n${body}`)
+      socket.end()
+    })
+  })
+  await new Promise(r => server.listen(0, '127.0.0.1', r))
+  return {
+    cfg,
+    origin: `https://127.0.0.1:${server.address().port}`,
+    async close () { server.close(); cert.dispose?.() }
+  }
 }
