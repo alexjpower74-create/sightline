@@ -91,9 +91,15 @@ await suite('scoring', async t => {
   })
 
   await t.check('decay is what keeps a bad area off the floor, not clamping', {
-    // Phones takes 55 + 40 + 18 on the neglected fixture. Summed flat that is 113 and the area
-    // pins at 0; with decay it lands in the teens. Set decay to 1 and this must fail.
-    assert: () => score(load('neglected')).score.areas.mobile > 0,
+    // Accessibility takes 35 + 30 + 22 + 10 + 8 on the neglected fixture. Summed flat that is 105
+    // and the area pins at 0; with decay it lands in the thirties. Set decay to 1 and this fails.
+    //
+    // This deliberately does NOT use Phones any more. Raising the missing-viewport penalty to 85
+    // put that area on the floor legitimately — a site with no viewport, 412px of sideways scroll
+    // and 17 unhittable targets genuinely scores nothing for phones — and the check went red
+    // because the ground moved under it, not because decay stopped working. An assertion has to
+    // sit somewhere the mechanism it watches is still the thing deciding the answer.
+    assert: () => score(load('neglected')).score.areas.accessibility > 0,
     breaks: () => { const was = SCORING.decay; SCORING.decay = 1; return () => { SCORING.decay = was } }
   })
 
