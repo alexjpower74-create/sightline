@@ -1,9 +1,10 @@
 {
   "url": "https://example-tours.ca",
   "finalUrl": "https://example-tours.ca/",
-  "fetchedAt": "2026-09-08T02:29:10.530Z",
+  "fetchedAt": "2026-09-08T03:04:30.507Z",
   "ok": true,
   "error": null,
+  "unreachableReason": null,
   "timing": {
     "ttfbMs": 210,
     "domContentLoadedMs": 900,
@@ -22,14 +23,16 @@
   "https": {
     "enabled": true,
     "redirectsToHttps": true,
-    "mixedContent": []
+    "mixedContent": [],
+    "certificateProblem": null
   },
   "mobile": {
     "hasViewportMeta": true,
     "viewportContent": "width=device-width, initial-scale=1",
     "horizontalOverflowPx": 0,
     "tapTargetsUnder44": 1,
-    "smallestTapTargetPx": 40
+    "smallestTapTargetPx": 40,
+    "overflowCulprit": null
   },
   "a11y": {
     "imagesMissingAlt": 2,

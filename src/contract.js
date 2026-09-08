@@ -28,12 +28,24 @@ export const AREAS = {
  * @property {string}  fetchedAt    ISO 8601
  * @property {boolean} ok           false when the site could not be reached at all
  * @property {string|null} error
+ * @property {'dns'|'timeout'|'http-error'|'blocked'|'tls'|null} unreachableReason
+ *   Why we could not read the site. `blocked` is deliberately distinct from the rest: bot
+ *   protection refusing our checker is NOT the same as the site being down, and telling an owner
+ *   their working site is down is the single worst thing this tool could do.
  * @property {{ttfbMs:number, domContentLoadedMs:number, loadMs:number}} timing
+ *   `loadMs` / `domContentLoadedMs` of **0 mean the event never fired**, not that the page was
+ *   instant. A page with one request hanging behind an analytics tag is visible and usable and
+ *   never finishes loading. Any rule reading these must check for 0 explicitly, or it will award
+ *   a compliment for the exact thing that is broken.
  * @property {{totalBytes:number, requests:number, imageBytes:number, scriptBytes:number,
  *            largestImage:{url:string, bytes:number}|null}} weight
- * @property {{enabled:boolean, redirectsToHttps:boolean, mixedContent:string[]}} https
+ * @property {{enabled:boolean, redirectsToHttps:boolean, mixedContent:string[],
+ *            certificateProblem:string|null}} https
  * @property {{hasViewportMeta:boolean, viewportContent:string|null, horizontalOverflowPx:number,
- *            tapTargetsUnder44:number, smallestTapTargetPx:number|null}} mobile
+ *            tapTargetsUnder44:number, smallestTapTargetPx:number|null,
+ *            overflowCulprit:{selector:string, widthPx:number, pastPx:number}|null}} mobile
+ *   `overflowCulprit` names the widest offending element. "Your price table is 900px wide on a
+ *   390px screen" is an instruction; "your page overflows by 510px" is a complaint.
  * @property {{imagesMissingAlt:number, imagesTotal:number, inputsMissingLabel:number,
  *            headingOrderBreaks:number, hasMainLandmark:boolean, hasSkipLink:boolean,
  *            htmlLangSet:boolean, lowContrastNodes:number}} a11y
@@ -41,19 +53,19 @@ export const AREAS = {
  *            metaDescriptionLength:number, h1Count:number, canonical:string|null,
  *            hasRobotsTxt:boolean, hasSitemap:boolean, ogTags:string[],
  *            structuredDataTypes:string[]}} seo
- * @property {{copyrightYear:number|null, generator:string|null, brokenLinks:string[],
- *            lastModified:string|null}} freshness
+ * @property {{copyrightYear:number|null, generator:string|null,
+ *            brokenLinks:{url:string, status:number|string}[], lastModified:string|null}} freshness
  * @property {{desktop:string|null, mobile:string|null}} screenshots  file paths, may be null
  */
 
 /** A blank Measurement. The collector fills it in; anything it cannot measure stays at this value. */
 export function emptyMeasurement (url) {
   return {
-    url, finalUrl: url, fetchedAt: new Date().toISOString(), ok: false, error: null,
+    url, finalUrl: url, fetchedAt: new Date().toISOString(), ok: false, error: null, unreachableReason: null,
     timing: { ttfbMs: 0, domContentLoadedMs: 0, loadMs: 0 },
     weight: { totalBytes: 0, requests: 0, imageBytes: 0, scriptBytes: 0, largestImage: null },
-    https: { enabled: false, redirectsToHttps: false, mixedContent: [] },
-    mobile: { hasViewportMeta: false, viewportContent: null, horizontalOverflowPx: 0, tapTargetsUnder44: 0, smallestTapTargetPx: null },
+    https: { enabled: false, redirectsToHttps: false, mixedContent: [], certificateProblem: null },
+    mobile: { hasViewportMeta: false, viewportContent: null, horizontalOverflowPx: 0, tapTargetsUnder44: 0, smallestTapTargetPx: null, overflowCulprit: null },
     a11y: { imagesMissingAlt: 0, imagesTotal: 0, inputsMissingLabel: 0, headingOrderBreaks: 0, hasMainLandmark: false, hasSkipLink: false, htmlLangSet: false, lowContrastNodes: 0 },
     seo: { title: null, titleLength: 0, metaDescription: null, metaDescriptionLength: 0, h1Count: 0, canonical: null, hasRobotsTxt: false, hasSitemap: false, ogTags: [], structuredDataTypes: [] },
     freshness: { copyrightYear: null, generator: null, brokenLinks: [], lastModified: null },

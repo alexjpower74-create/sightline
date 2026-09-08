@@ -16,5 +16,11 @@
     "url": "https://example-gone.ca",
     "town": "Springdale",
     "sector": "retail"
+  },
+  {
+    "name": "Example Guarded",
+    "url": "https://example-guarded.ca",
+    "town": "Botwood",
+    "sector": "retail"
   }
 ]

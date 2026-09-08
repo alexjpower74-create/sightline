@@ -1,10 +1,10 @@
 {
-  "url": "https://example-gone.ca",
-  "finalUrl": "https://example-gone.ca",
+  "url": "https://example-guarded.ca",
+  "finalUrl": "https://example-guarded.ca",
   "fetchedAt": "2026-09-08T03:04:30.507Z",
   "ok": false,
-  "error": "ENOTFOUND",
-  "unreachableReason": "dns",
+  "error": "HTTP 403 from https://example-guarded.ca",
+  "unreachableReason": "blocked",
   "timing": {
     "ttfbMs": 0,
     "domContentLoadedMs": 0,

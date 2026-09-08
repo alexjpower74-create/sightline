@@ -41,9 +41,25 @@ const EFFORT_ORDER = { quick: 0, moderate: 1, rebuild: 2 }
 export function score (m) {
   assertMeasurement(m)
 
-  // A site we could not reach gets no score at all. Inventing one would be the single fastest way
-  // to lose the room: the owner knows their site is down, and a number would say we never looked.
+  // A site we could not read gets no score at all. Inventing one would be the fastest way to lose
+  // the room: the owner knows their own site, and a number would say we never looked.
   if (!m.ok) {
+    // Blocked is NOT down, and the two must never be reported the same way. Bot protection
+    // refusing an automated checker says nothing about whether customers can reach the site.
+    // Telling an owner their working site is down is the single worst thing this tool could do.
+    if (m.unreachableReason === 'blocked') {
+      return {
+        score: { overall: null, areas: {}, band: 'blocked',
+          hook: 'We could not check this site automatically — it turned our checker away. That is not a fault, and it is not a score.' },
+        findings: [{
+          id: 'blocked', area: 'trust', severity: SEVERITY.MINOR,
+          title: 'Site refused automated checking',
+          plainEnglish: 'Your site has protection that turns away automated visitors, and it turned ours away too. That is often a sensible setting and it does not mean anything is wrong. It does mean this particular check has to be done by hand.',
+          evidence: m.error || 'request refused',
+          effort: 'quick'
+        }]
+      }
+    }
     return {
       score: { overall: null, areas: {}, band: 'unreachable',
         hook: 'We could not reach your website at all when we checked.' },
