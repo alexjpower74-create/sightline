@@ -505,3 +505,21 @@ building.
   today, but if that ever changes, `encodedDataLength` for a cached response is 0.
 - **`seo.structuredDataTypes`** parses JSON-LD (through `@graph`, six levels) and microdata
   `itemtype`. RDFa is not read.
+
+---
+
+## Addendum — the classification, tested by accident
+
+_Added by vera on c1's behalf; c1 could not commit to `docs/` before the guard exemption landed._
+
+The second live run tested this classification without meaning to. Fifteen sites, re-run hours
+later for an unrelated reason: 12 of 15 came back with identical findings. All three that moved
+were timing. Not one field from the stable list moved — no viewport tag appeared or vanished, no
+title changed, no alt-text count, no copyright year. So the split is measured rather than argued,
+and it is worth more for having fallen out of a run nobody performed to check it. Had I set out to
+test my own classification I would have chosen the sites and the interval, and the result would
+have been worth less.
+
+The sitemap retry, on the same run, changed nothing: `no-sitemap` fired on 0 of 15 both before and
+after, because all fifteen genuinely have sitemaps. The exposure was theoretical on this batch —
+insurance, not a repair.
