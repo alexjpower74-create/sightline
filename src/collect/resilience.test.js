@@ -102,13 +102,23 @@ await suite('resilience', async t => {
   })
 
   // RED IF: a very large page exhausts the budget or the heap. 40MB of real DOM.
+  //
+  // Given its OWN browser rather than the suite's shared one. Twice now this check has blown past
+  // its deadline under machine load and taken the next five checks down with it — all of them
+  // failing in milliseconds, which is what a dead browser looks like. Abandoning the assert leaves
+  // the 40MB page loading while the control loads it again, and two of those in one Chrome is
+  // enough to lose the process. Isolating it means a slow check can only fail itself.
   await check('40MB of DOM comes back inside the budget', {
     assert: async () => {
-      const started = Date.now()
-      const m = await measure('/huge', { timeoutMs: 45_000 })
-      return wellFormed(m) && m.weight.totalBytes > 30_000_000 && Date.now() - started < 45_000
+      const own = await launch({ headless: true, port: await freePort() })
+      try {
+        const started = Date.now()
+        const m = await collect(server.url('/huge'), { browser: own, screenshots: false, timeoutMs: 45_000 })
+        return wellFormed(m) && m.weight.totalBytes > 30_000_000 && Date.now() - started < 45_000
+      } finally { await own.close() }
     },
-    breaks: flip('hugeChunks', 10)
+    breaks: flip('hugeChunks', 10),
+    timeout: 90_000
   })
 
   // RED IF: the per-site cap is advisory. A run that outlasts it has to come back anyway, with
