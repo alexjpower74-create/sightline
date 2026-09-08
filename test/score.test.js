@@ -6,6 +6,7 @@ import { suite } from '@alexpower/rig/harness/check.js'
 import { score, rank, stack, SCORING } from '../src/score/index.js'
 import { readFileSync } from 'node:fs'
 import { RULES } from '../src/score/rules.js'
+import { AREAS } from '../src/contract.js'
 import { writeFileSync, readFileSync as rf } from 'node:fs'
 
 // Several controls repair the fixture on disk, because `load()` reads from disk — that is the
@@ -232,4 +233,69 @@ await suite('not lying to the owner', async t => {
       return () => RULES.push(...removed)
     }
   })
+})
+
+// ------------------------------------------------------------------------------------------------
+// Found on the first live run against real Newfoundland businesses, not by any fixture.
+// ------------------------------------------------------------------------------------------------
+
+await suite('never accuse a working site', async t => {
+
+  // Setup, not assertion. The assert must READ this state, never write it — an assert that
+  // rewrites the fixture destroys its own negative control. That mistake has now been made three
+  // times in this file, which is itself the argument for the harness refusing to call it green.
+  {
+    const m = load('unreachable')
+    m.unreachableReason = 'checker-error'
+    m.error = 'net::ERR_HTTP2_PROTOCOL_ERROR from Chrome; plain request returned 200'
+    writeFileSync(UNREACHABLE, JSON.stringify(m, null, 2))
+  }
+
+  await t.check('a checker-side failure is not written up as the site being down', {
+    // a live site. Chrome returned ERR_HTTP2_PROTOCOL_ERROR; curl returned 200 in 1.3s. The
+    // report told a real business their site was down. It was not.
+    assert: () => {
+      const { score: s, findings } = score(load('unreachable'))
+      return s.band === 'not-checked' && s.overall === null &&
+             findings[0].severity !== 'critical' &&
+             !/did not respond|error page|could not reach your website/i.test(findings[0].plainEnglish) &&
+             /limitation on our end/i.test(findings[0].plainEnglish)
+    },
+    // Call the same failure a DNS failure and it must be reported as down again — otherwise this
+    // check would pass simply by never accusing anyone of anything.
+    breaks: () => {
+      const m = load('unreachable'); m.unreachableReason = 'dns'
+      writeFileSync(UNREACHABLE, JSON.stringify(m, null, 2))
+      return () => {
+        const r = load('unreachable'); r.unreachableReason = 'checker-error'
+        writeFileSync(UNREACHABLE, JSON.stringify(r, null, 2))
+      }
+    }
+  })
+
+  writeFileSync(UNREACHABLE, ORIGINAL_UNREACHABLE)
+
+  {
+    const m = load('solid')
+    m.mobile.hasViewportMeta = false; m.mobile.viewportContent = null
+    writeFileSync(SOLID, JSON.stringify(m, null, 2))
+  }
+
+  await t.check('one catastrophic area cannot be averaged away by four healthy ones', {
+    // A real site that does not work on a phone at all was scoring 72, because its SEO was tidy
+    // and mobile is only a quarter of the weighting. Nobody ranking prospects would call that a 72.
+    assert: () => {
+      const s = score(load('solid')).score
+      return s.overall < 60 && s.overall <= s.areas.mobile + SCORING.worstAreaHeadroom
+    },
+    // Lift the cap and the plain weighted average comes back, well above 60. This breaks the
+    // mechanism under test rather than the input, which is the point.
+    breaks: () => {
+      const was = SCORING.worstAreaHeadroom
+      SCORING.worstAreaHeadroom = 100
+      return () => { SCORING.worstAreaHeadroom = was }
+    }
+  })
+
+  writeFileSync(SOLID, ORIGINAL_SOLID)
 })

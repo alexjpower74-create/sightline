@@ -32,7 +32,7 @@ export const RULES = [
 
   // ---- Phones -------------------------------------------------------------------------------
   {
-    id: 'no-viewport-meta', area: 'mobile', severity: SEVERITY.CRITICAL, penalty: 55, effort: 'moderate',
+    id: 'no-viewport-meta', area: 'mobile', severity: SEVERITY.CRITICAL, penalty: 85, effort: 'moderate',
     title: 'Site was never set up for phones',
     when: m => !m.mobile.hasViewportMeta,
     evidence: () => 'no viewport meta tag — the page is served to phones at desktop width',
