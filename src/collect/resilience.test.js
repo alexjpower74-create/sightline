@@ -39,6 +39,13 @@ const wellFormed = m => {
 }
 
 await suite('resilience', async t => {
+  // Every check below drives two full measurements — the real page and the broken one — so the
+  // harness's 10s default is a thin margin. One full run flaked on it at exactly 10002ms while the
+  // same check took 3.9s standalone: machine load, not a defect, but a suite that goes red under
+  // load is a suite people learn to re-run instead of read. Nothing here should legitimately take
+  // 30 seconds.
+  const check = (name, opts) => t.check(name, { timeout: 30_000, ...opts })
+
 
   // ---- the site is simply gone -----------------------------------------------------------------
   //
@@ -49,7 +56,7 @@ await suite('resilience', async t => {
   await dead.close()
 
   // RED IF: an unreachable site throws, or comes back claiming to be ok.
-  await t.check('a dead server comes back as a Measurement, not an exception', {
+  await check('a dead server comes back as a Measurement, not an exception', {
     assert: async () => {
       const m = await collect(deadOrigin + '/', { browser, screenshots: false, timeoutMs: 15_000 })
       return wellFormed(m) && m.ok === false && m.unreachableReason === 'refused' && /refused|reached|answered/.test(m.error)
@@ -63,7 +70,7 @@ await suite('resilience', async t => {
   })
 
   // RED IF: a redirect loop hangs, throws, or is reported as a working site.
-  await t.check('a redirect loop is reported in words an owner could read', {
+  await check('a redirect loop is reported in words an owner could read', {
     assert: async () => {
       const m = await measure('/loop')
       return wellFormed(m) && m.ok === false && /loop/.test(m.error)
@@ -73,7 +80,7 @@ await suite('resilience', async t => {
 
   // RED IF: a homepage answering 500 is scored as a working site. It is down as far as its
   // owner's customers are concerned, and the report has a path for that.
-  await t.check('a 500 is reached but not ok, and says so', {
+  await check('a 500 is reached but not ok, and says so', {
     assert: async () => {
       const m = await measure('/boom')
       return wellFormed(m) && m.ok === false && m.error.includes('HTTP 500')
@@ -84,7 +91,7 @@ await suite('resilience', async t => {
   // RED IF: a page whose load event never fires is treated as unreachable. Half the small-business
   // web has one request hanging behind an analytics tag; the page is perfectly visible, and
   // loadMs staying at 0 is itself the finding.
-  await t.check('a page that never finishes loading is still measured', {
+  await check('a page that never finishes loading is still measured', {
     assert: async () => {
       const m = await measure('/hang', { navTimeoutMs: 3000, timeoutMs: 30_000 })
       return wellFormed(m) && m.ok === true && m.timing.loadMs === 0 &&
@@ -94,7 +101,7 @@ await suite('resilience', async t => {
   })
 
   // RED IF: a very large page exhausts the budget or the heap. 40MB of real DOM.
-  await t.check('40MB of DOM comes back inside the budget', {
+  await check('40MB of DOM comes back inside the budget', {
     assert: async () => {
       const started = Date.now()
       const m = await measure('/huge', { timeoutMs: 45_000 })
@@ -105,7 +112,7 @@ await suite('resilience', async t => {
 
   // RED IF: the per-site cap is advisory. A run that outlasts it has to come back anyway, with
   // whatever it managed to measure and an honest reason.
-  await t.check('a run that outlasts its budget returns rather than hanging', {
+  await check('a run that outlasts its budget returns rather than hanging', {
     assert: async () => {
       const started = Date.now()
       const m = await collect(server.url('/huge'), { browser, screenshots: false, timeoutMs: 2500 })
@@ -123,7 +130,7 @@ await suite('resilience', async t => {
   // do. Worse than missing a finding, worse than a wrong score. These three checks are the guard.
 
   // RED IF: bot protection is reported as a broken site.
-  await t.check('bot protection is a refusal, not a site being down', {
+  await check('bot protection is a refusal, not a site being down', {
     assert: async () => {
       const m = await measure('/blocked')
       return wellFormed(m) && m.ok === false && m.unreachableReason === 'blocked' &&
@@ -134,7 +141,7 @@ await suite('resilience', async t => {
 
   // RED IF: a challenge page that answers 200 is measured as if it were the site. The owner would
   // be shown a score for a Cloudflare waiting room.
-  await t.check('a 200 that is really a waiting room is a refusal, not a page', {
+  await check('a 200 that is really a waiting room is a refusal, not a page', {
     assert: async () => {
       const m = await measure('/challenge')
       // Nothing about the waiting room may be recorded as if it described the business.
@@ -146,7 +153,7 @@ await suite('resilience', async t => {
 
   // RED IF: the refusal test is so eager that a genuinely broken page is excused. A 404 is an
   // http error and has to keep saying so — including on a page whose title is "Access Denied".
-  await t.check('a genuine 404 is an http error, not a refusal', {
+  await check('a genuine 404 is an http error, not a refusal', {
     assert: async () => {
       const m = await measure('/gone')
       const realPage = classifyRefusal(200, {}, { title: 'Access Denied', textLength: 6000 })
@@ -158,7 +165,7 @@ await suite('resilience', async t => {
   // RED IF: a certificate Chrome will not accept is measured as if it were the site. Headless
   // fails the navigation outright rather than showing an interstitial, which is what we want — a
   // screenshot of a browser warning page is not a screenshot of anybody's website.
-  await t.check('an untrusted certificate is reported as a certificate problem', {
+  await check('an untrusted certificate is reported as a certificate problem', {
     assert: async () => {
       let serveTls = true
       const tls = await startTlsServer((req, res) => {
@@ -184,7 +191,7 @@ await suite('resilience', async t => {
 
   // RED IF: net:: codes reach the report, or a code we have no sentence for gets explained away
   // with a guess. This string is read by a business owner about their own site.
-  await t.check('network failures are translated out of Chrome-speak', {
+  await check('network failures are translated out of Chrome-speak', {
     assert: () => {
       const known = describeError(new Error('net::ERR_NAME_NOT_RESOLVED (http://x.test/)'))
       const unknown = describeError(new Error('net::ERR_MADE_UP_CODE'))
