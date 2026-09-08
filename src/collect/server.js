@@ -21,7 +21,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 
 // A real 1x1 PNG, so Network.* sees an actual image transfer rather than a 404.
 const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 
-export async function startServer ({ port = 0, robots = true, sitemap = true } = {}) {
+export async function startServer ({ port = 0, robots = true, sitemap = true, softFiles = false } = {}) {
   const hanging = new Set()
 
   const server = createServer(async (req, res) => {
@@ -61,6 +61,12 @@ export async function startServer ({ port = 0, robots = true, sitemap = true } =
     if (p === '/heavy.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end('/*' + 'j'.repeat(300_000) + '*/\nwindow.__heavy = true') }
 
     // --- site files ---------------------------------------------------------------------------
+    // The common false positive: a site that answers 200 with its homepage for any unknown path,
+    // which credits it with a robots.txt and a sitemap it does not have.
+    if (softFiles && (p === '/robots.txt' || p === '/sitemap.xml')) {
+      res.writeHead(200, { 'content-type': 'text/html' })
+      return res.end('<!doctype html><html lang="en"><head><title>Home</title></head><body><h1>Home</h1></body></html>')
+    }
     if (p === '/robots.txt') {
       if (!robots) { res.writeHead(404); return res.end('nope') }
       res.writeHead(200, { 'content-type': 'text/plain' })
@@ -71,12 +77,6 @@ export async function startServer ({ port = 0, robots = true, sitemap = true } =
       res.writeHead(200, { 'content-type': 'application/xml' })
       return res.end('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>/</loc></url></urlset>')
     }
-    // The common false positive: a site that answers 200 with its homepage for any unknown path.
-    if (p === '/soft404/robots.txt' || p === '/soft404/sitemap.xml') {
-      res.writeHead(200, { 'content-type': 'text/html' })
-      return res.end('<!doctype html><html><body><h1>Home</h1></body></html>')
-    }
-
     // --- static fixtures ------------------------------------------------------------------------
     const name = p === '/' ? '/good.html' : p
     try {

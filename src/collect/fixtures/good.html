@@ -36,7 +36,10 @@
   <h2>What we do</h2>
   <p>Foundations, framing and renovations across Green Bay since 1994.</p>
   <img src="/pixel.png" alt="A crew pouring a foundation in Springdale">
-  <img src="/big.png" alt="Framing work on a two-storey build">
+  <!-- Set from script on purpose: a collector that reads page weight out of the HTML will never
+       see these two megabytes, which is the entire reason weight comes from Network.* events. -->
+  <img id="framing" alt="Framing work on a two-storey build">
+  <script>document.getElementById('framing').src = '/big.png'</script>
   <h2>Get an estimate</h2>
   <form>
     <label for="name">Your name</label>

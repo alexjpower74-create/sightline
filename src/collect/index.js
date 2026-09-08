@@ -150,11 +150,18 @@ async function runPasses (browser, url, m, opts) {
 
     Object.assign(m.mobile, await evalFn(phone, viewportMetaScript))
 
-    const overflow = await measureHorizontalOverflow(phone, note)
-    m.mobile.horizontalOverflowPx = overflow.px
+    // Read it twice. Web fonts swap in and lazy images arrive after the load event, and either can
+    // push a page sideways a second later; a page measured only at load and a page measured after
+    // a visitor has scrolled it routinely disagree. The second reading comes after the tap-target
+    // sweep, which has scrolled the whole page with real input and pulled in the lazy content.
+    const settled = await measureHorizontalOverflow(phone, note)
 
     const targets = await evalFn(phone, tapSetupScript, { max: opts.maxTapTargets ?? 600 })
     const sweep = await sweepWithRealInput(phone, deadline, opts.sweepScreens ?? 6)
+
+    const afterSweep = await measureHorizontalOverflow(phone, note, { probeWithInput: false, label: 'after-sweep' })
+    m.mobile.horizontalOverflowPx = Math.max(settled.px, afterSweep.px)
+
     const tally = await evalFn(phone, tapTallyScript, { min: 44 })
     m.mobile.tapTargetsUnder44 = tally.under
     m.mobile.smallestTapTargetPx = tally.smallest
@@ -192,10 +199,10 @@ async function runPasses (browser, url, m, opts) {
  * map eats the wheel event, which would miss the finding entirely. So: if the root clips, the
  * answer is zero whatever the geometry says; otherwise take whichever reading is larger.
  */
-async function measureHorizontalOverflow (page, note = () => {}) {
+async function measureHorizontalOverflow (page, note = () => {}, { probeWithInput = true, label = 'settled' } = {}) {
   const before = await evalFn(page, overflowGeometryScript)
   let scrolled = 0
-  if (!before.clipped && before.layoutOverflowPx > 0) {
+  if (probeWithInput && !before.clipped && before.layoutOverflowPx > 0) {
     for (let round = 0; round < 3; round++) {
       await wheel(page, { x: Math.round(before.innerWidth / 2), y: 60, dx: 1200, dy: 0, ticks: 10, ms: 8 })
       await sleep(120)
@@ -213,7 +220,7 @@ async function measureHorizontalOverflow (page, note = () => {}) {
   }
   const px = before.clipped ? 0 : Math.max(scrolled, before.layoutOverflowPx)
   const culprit = px > 8 ? await evalFn(page, overflowCulpritScript, { viewportWidth: before.clientWidth, maxNodes: 3000 }) : null
-  note({ kind: 'overflow', px, scrolledByInput: scrolled, geometry: before, culprit })
+  note({ kind: 'overflow', at: label, px, scrolledByInput: scrolled, geometry: before, culprit })
   return { px, culprit }
 }
 

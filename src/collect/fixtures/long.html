@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A long page with late content</title>
+<style>
+  body { margin: 0; font: 16px/1.5 sans-serif; color: #111; background: #fff; }
+  section { padding: 24px 12px; height: 700px; box-sizing: border-box; border-bottom: 1px solid #ddd; }
+  .small { display: inline-block; width: 28px; height: 28px; margin: 4px; background: #eee; }
+  .roomy { display: inline-block; width: 56px; height: 56px; margin: 4px; background: #eee; }
+  /* Arrives only once a visitor has scrolled far enough to trip the observer — the reason the
+     collector reads horizontal overflow a second time instead of trusting the load event. */
+  #late { width: 760px; height: 90px; background: #cfe; }
+</style>
+</head>
+<body>
+<section><h1>Top</h1><a class="roomy" href="/a">1</a><a class="small" href="/b">2</a></section>
+<section><h2>Two</h2><a class="small" href="/c">3</a><a class="roomy" href="/d">4</a></section>
+<section id="sentinel"><h2>Three</h2><a class="small" href="/e">5</a><div id="slot"></div></section>
+<section><h2>Four</h2><a class="small" href="/f">6</a></section>
+<section><h2>Five</h2><a class="roomy" href="/g">7</a></section>
+<script>
+  new IntersectionObserver((entries, obs) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue
+      const d = document.createElement('div')
+      d.id = 'late'
+      d.textContent = 'A wide block that only exists after you scroll to it.'
+      document.getElementById('slot').appendChild(d)
+      obs.disconnect()
+    }
+  }).observe(document.getElementById('sentinel'))
+</script>
+</body>
+</html>

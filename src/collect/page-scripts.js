@@ -353,6 +353,11 @@ export function tapSetupScript (opts) {
     // A collapsed mobile menu holds a dozen links a visitor cannot tap yet. They are not targets.
     if (typeof el.checkVisibility === 'function') { if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue }
     else if (cs.visibility === 'hidden' || cs.display === 'none') continue
+    // Parked off the canvas entirely: a skip link at left:-9999px, an off-screen drawer. A well
+    // built site is full of these, and counting one as a 24px tap target turns an accessibility
+    // feature into a finding against the very site that got it right.
+    if (r.right + window.scrollX <= 0 || r.bottom + window.scrollY <= 0) continue
+    if (r.left + window.scrollX >= document.documentElement.scrollWidth) continue
     targets.push(el)
   }
   window.__sightline = { targets, seen: new Array(targets.length).fill(null) }
