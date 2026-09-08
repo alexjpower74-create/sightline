@@ -88,7 +88,31 @@ function looksLikeHtml (r) {
   return /text\/html/i.test(r.contentType) || /^\s*<(!doctype|html)/i.test(r.text)
 }
 
+/**
+ * Fetch a site file, and ask twice before concluding it is not there.
+ *
+ * These two probes are unlike everything else here: whether a site has a sitemap is a stable fact
+ * about the site, but a single GET is a flaky way to read it. A transient 5xx or one slow response
+ * turns "they have a sitemap" into "they do not", and unlike a speed number that moves, that
+ * finding is CATEGORICAL. "You have no sitemap" said to an owner who has one is wrong in the way
+ * that ends a conversation — and it is harder to catch than telling someone their site is down,
+ * because nobody thinks to check a true-sounding negative.
+ *
+ * So: one retry, on a timeout or a 5xx only. A 404 is a real answer and is taken at face value.
+ * The retry fires only on sites that already failed the probe, so it costs nothing on a site that
+ * answered the first time.
+ */
 async function getText (url, timeoutMs, maxBytes = 512 * 1024) {
+  let last = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, 400))
+    last = await getTextOnce(url, timeoutMs, maxBytes)
+    if (last && last.status < 500) return last     // 2xx, 3xx or 4xx: a real answer, believe it
+  }
+  return last
+}
+
+async function getTextOnce (url, timeoutMs, maxBytes) {
   try {
     const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(timeoutMs), headers: { 'user-agent': UA } })
     const buf = await res.arrayBuffer()

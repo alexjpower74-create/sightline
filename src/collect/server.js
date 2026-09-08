@@ -33,12 +33,14 @@ export async function startServer (options = {}) {
     hostileToBrowsers: true,     // /hostile hangs up on anything asking for HTML
     flakyFailsAfterFirst: true,  // /flaky serves the first visit and hangs up on every one after
     emptyServesPage: false,      // /empty normally answers nothing at all
+    robotsFailures: 0,           // how many times /robots.txt and /sitemap.xml fail before answering
     goneStatus: 404,
     challengeMode: 'challenge',  // 'challenge' | 'real'
     ...options
   }
   const hanging = new Set()
   let flakyHits = 0
+  const transientHits = { '/robots.txt': 0, '/sitemap.xml': 0 }
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://127.0.0.1`)
@@ -137,6 +139,15 @@ export async function startServer (options = {}) {
       res.writeHead(200, { 'content-type': 'text/html' })
       return res.end('<!doctype html><html lang="en"><head><title>Home</title></head><body><h1>Home</h1></body></html>')
     }
+    // A site file that fails the first time and answers the second. This is the shape that turned
+    // "they have a sitemap" into the categorical, disputable finding "you have no sitemap".
+    if (cfg.robotsFailures && (p === '/robots.txt' || p === '/sitemap.xml')) {
+      if (transientHits[p] < cfg.robotsFailures) {
+        transientHits[p]++
+        res.writeHead(503, { 'content-type': 'text/plain' })
+        return res.end('temporarily unavailable')
+      }
+    }
     if (p === '/robots.txt') {
       if (!cfg.robots) { res.writeHead(404); return res.end('nope') }
       res.writeHead(200, { 'content-type': 'text/plain' })
@@ -164,6 +175,7 @@ export async function startServer (options = {}) {
   return {
     origin,
     cfg,
+    resetTransients () { for (const k of Object.keys(transientHits)) transientHits[k] = 0 },
     url: path => origin + path,
     async close () {
       for (const res of hanging) { try { res.destroy() } catch { /* already gone */ } }

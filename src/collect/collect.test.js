@@ -38,6 +38,8 @@ process.on('exit', () => { for (const [name, text] of originals) { try { require
 /** One collect() per page, memoised — until something breaks the page and invalidates it. */
 const runs = new Map()
 let softMode = true
+let siteFileFailures = 1
+let siteFilesPresent = false
 const shots = new Map()
 function measure (path, opts = {}) {
   if (!runs.has(path)) {
@@ -279,6 +281,37 @@ await suite('collector', async t => {
     // what the first version of this control failed to reveal, because it set a global and
     // changed nothing about the server under test.
     breaks: () => { softMode = false; return () => { softMode = true } }
+  })
+
+  // RED IF: one bad response is enough to conclude a site has no robots.txt or no sitemap. These
+  // two are unlike every other volatile reading: the finding is CATEGORICAL. A speed number that
+  // moves reads as a measurement of a moment; "you have no sitemap" is a statement of fact about
+  // their site, and it is wrong in the way that ends a conversation. It is also the harder kind to
+  // catch, because nobody thinks to check a true-sounding negative.
+  await check('a site file that fails once is asked again before we call it missing', {
+    assert: async () => {
+      const s2 = await startServer({ robotsFailures: siteFileFailures })
+      try {
+        const f = await siteFiles(s2.origin)
+        return f.hasRobotsTxt === true && f.hasSitemap === true
+      } finally { await s2.close() }
+    },
+    // Make the failure permanent rather than transient. A site that never serves the file really
+    // does not have one, and the retry must not paper over that.
+    breaks: () => { siteFileFailures = 99; return () => { siteFileFailures = 1 } }
+  })
+
+  // RED IF: the retry is so eager it invents a file that is genuinely absent. A 404 is a real
+  // answer and gets taken at face value — only a timeout or a 5xx earns a second ask.
+  await check('a genuine 404 is taken at face value, not retried into existence', {
+    assert: async () => {
+      const s2 = await startServer({ robots: siteFilesPresent, sitemap: siteFilesPresent })
+      try {
+        const f = await siteFiles(s2.origin)
+        return f.hasRobotsTxt === false && f.hasSitemap === false
+      } finally { await s2.close() }
+    },
+    breaks: () => { siteFilesPresent = true; return () => { siteFilesPresent = false } }
   })
 
   // ---- freshness -----------------------------------------------------------------------------
