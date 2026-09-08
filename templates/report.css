@@ -204,6 +204,13 @@ p:last-child { margin-bottom: 0; }
 .shot img { width: 100%; display: block; }
 .shot.is-phone { max-height: 96mm; }
 .shot.is-phone img { object-fit: cover; object-position: top center; }
+
+/* A wide capture, given the whole column. In the 54mm rail it arrives unreadable, and an unreadable
+   screenshot is worse than none — it looks like we padded the page. */
+/* A capture wider than it is tall — what a page with no viewport meta produces, because Chrome
+   lays it out at the page's own width. Shown whole at rail width rather than cropped: small, but
+   the caption carries the argument, and page 3 shows it at size. */
+.shot.is-wide img { display: block; width: 100%; height: auto; }
 .shot-caption {
   font-size: 7pt; line-height: 1.42; color: var(--ink-3);
   margin-top: 1.8mm;

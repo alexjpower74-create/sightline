@@ -14,7 +14,7 @@
 // never title. Page 2 pairs title with evidence. Mixing them is the one edit that breaks the idea.
 
 import { AREAS, SEVERITY, assertAudit } from '../contract.js'
-import { fontCss, stylesheet, imageDataUri } from './assets.js'
+import { fontCss, stylesheet, image } from './assets.js'
 import {
   STRONG_HEADLINE, BAND_FOLLOWUP, BAND_LINE, SEVERITY_LABEL, EFFORT_LABEL,
   AREA_MEANING, areaLabel, areaWeightPct, unreachableCopy, bytes, ms, count, yesNo, shortDate
@@ -99,8 +99,8 @@ export function view (audit, opts = {}) {
     generatedAt: audit.generatedAt || m.fetchedAt || null,
     preparedBy: opts.preparedBy || null,
     shots: {
-      mobile: imageDataUri(m.screenshots?.mobile),
-      desktop: imageDataUri(m.screenshots?.desktop)
+      mobile: image(m.screenshots?.mobile),
+      desktop: image(m.screenshots?.desktop)
     }
   }
 }
@@ -222,21 +222,38 @@ function ownerFindings (v) {
   </section>`
 }
 
-/** The owner's own site on a phone. This persuades harder than any number on the page. */
-function phoneRail (v) {
-  const src = v.shots.mobile || v.shots.desktop
-  if (!src) return ''
-  const isPhone = Boolean(v.shots.mobile)
+/**
+ * The owner's own site on a phone. This persuades harder than any number on the page, which is
+ * exactly why it is not allowed to arrive four centimetres wide.
+ *
+ * The layout follows the image, not the other way round. A tall capture goes in the rail beside the
+ * list; a wide one — which is what a site with no viewport meta produces, because Chrome lays it
+ * out at the page's own width — goes full width underneath, where it is legible. Choosing by
+ * filename or by "it came from the mobile pass" gets this wrong for precisely the sites that need
+ * the evidence most.
+ */
+function evidenceCaption (v, isPhone) {
   const overflow = v.measurement.mobile?.horizontalOverflowPx
-  const caption = isPhone
-    ? (overflow > 0
-        ? `<strong>Your site on a phone.</strong> It runs ${count(overflow)} px off the side of the screen, so a visitor has to drag sideways to read it.`
-        : '<strong>Your site on a phone.</strong> This is how most people will see it.')
-    : '<strong>Your site, as captured.</strong> No phone screenshot was taken on this run.'
+  if (!isPhone) return '<strong>Your site, as captured.</strong> No phone screenshot was taken on this run.'
+  if (overflow > 0) return `<strong>Your site on a phone.</strong> It runs ${count(overflow)} px off the side of the screen, so a visitor has to drag sideways to read it.`
+  if (v.measurement.mobile?.hasViewportMeta === false) return '<strong>Your site on a phone.</strong> With no mobile setup, the whole page gets squeezed to this — a visitor has to pinch in to read anything.'
+  return '<strong>Your site on a phone.</strong> This is how most people will see it.'
+}
+
+function phoneRail (v) {
+  const shot = v.shots.mobile || v.shots.desktop
+  if (!shot) return ''
+  // Portrait fills the rail and gets cropped at the fold; a wide capture is shown whole at rail
+  // width, which is small. Both alternatives were worse. Cover-cropping a 1288-wide page into a
+  // phone-shaped box zooms to about 110 CSS px and shows a corner of a header. Running it
+  // full-width across the sheet at 42mm is a dark band that eats an office cartridge, and being
+  // the last block on a nearly-full page it hit `break-inside: avoid` and threw itself onto a
+  // sheet of its own — a stray picture two findings later, and a sixth page. The wide capture gets
+  // its room in the screenshots section on page 3 instead, where there is space for it.
   return `
       <div class="evidence-rail">
-        <div class="shot${isPhone ? ' is-phone' : ''}"><img src="${src}" alt=""></div>
-        <p class="shot-caption">${caption}</p>
+        <div class="shot ${shot.portrait ? 'is-phone' : 'is-wide'}"><img src="${shot.src}" alt=""></div>
+        <p class="shot-caption">${evidenceCaption(v, Boolean(v.shots.mobile))}</p>
       </div>`
 }
 
@@ -383,13 +400,13 @@ function evidenceSection (v) {
     <div class="shot-pair">
       ${yes(desktop, `
       <div class="col-wide">
-        <div class="shot is-desktop"><img src="${desktop}" alt=""></div>
-        <p class="shot-caption"><strong>Desktop — 1440 × 900.</strong> ${esc(v.measurement.finalUrl || '')}</p>
+        <div class="shot is-desktop"><img src="${desktop.src}" alt=""></div>
+        <p class="shot-caption"><strong>Desktop — 1440 × 900 viewport.</strong> ${esc(v.measurement.finalUrl || '')}</p>
       </div>`)}
       ${yes(mobile, `
       <div class="col-narrow">
-        <div class="shot"><img src="${mobile}" alt=""></div>
-        <p class="shot-caption"><strong>Phone — 390 × 844.</strong> Full page, at 3× device pixel ratio.</p>
+        <div class="shot"><img src="${mobile.src}" alt=""></div>
+        <p class="shot-caption"><strong>Phone — 390 × 844 viewport.</strong> ${mobile.width ? `Captured ${mobile.width} × ${mobile.height} px — ` : ''}as the browser laid the page out at that size.</p>
       </div>`)}
     </div>
   </section>`
