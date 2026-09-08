@@ -6,9 +6,9 @@ show the owner, in their own language, what their current site is costing them.
 Its output is not a Lighthouse dump. It is **a page a business owner reads and a page a developer
 acts on**, plus a ranked call list so the shop knows who to phone first.
 
-Target user: Example Web Studio. Their clients are NL construction firms, tourism operators,
-realtors, clinics and nonprofits. Several are public-sector adjacent, so **accessibility findings
-are contract-relevant, not decoration**.
+Target user: a small web shop. Its clients are Newfoundland construction firms, tourism
+operators, realtors, clinics and nonprofits. Several are public-sector adjacent, so **accessibility
+findings are contract-relevant, not decoration**.
 
 ## Rules
 

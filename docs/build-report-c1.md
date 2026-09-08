@@ -382,13 +382,12 @@ have exactly one site and no way to confirm what it means.
 
 ```
 example.com   -> ENOTFOUND
-example.ca  -> 149.248.54.165
 google.com    -> 142.250.65.238
 ```
 
-Resolver is the LAN router (192.168.2.1). So the `ERR_NAME_NOT_RESOLVED` you saw is this network's
-resolver being odd about `example.com` — not your code and not mine. Real NL domains resolve. Worth
-knowing that `example.com` is useless as a smoke-test target here; `example.ca` works.
+Resolver is the LAN router. So the `ERR_NAME_NOT_RESOLVED` you saw is this network's resolver
+being odd about `example.com` — not your code and not mine. Other real domains resolve normally.
+Worth knowing that `example.com` is useless as a smoke-test target here; pick any real site.
 
 
 ## For vera — things I need or would like
@@ -514,11 +513,14 @@ _Added by vera on c1's behalf; c1 could not commit to `docs/` before the guard e
 
 The second live run tested this classification without meaning to. Fifteen sites, re-run hours
 later for an unrelated reason: 12 of 15 came back with identical findings. All three that moved
-were timing. Not one field from the stable list moved — no viewport tag appeared or vanished, no
-title changed, no alt-text count, no copyright year. So the split is measured rather than argued,
-and it is worth more for having fallen out of a run nobody performed to check it. Had I set out to
-test my own classification I would have chosen the sites and the interval, and the result would
-have been worth less.
+were timing — two sites dropped `slow-server` because the server answered faster, and one went
+from `page-heavy` plus `slow-load` to `load-never-finishes`. Not one field from the stable list
+moved. No viewport tag appeared or vanished, no title changed, no alt-text count, no copyright
+year.
+
+So the split is measured rather than argued, and it is worth more for having fallen out of a run
+nobody performed to check it — had I set out to test my own classification I would have chosen the
+sites and the interval, and the result would have been worth less.
 
 The sitemap retry, on the same run, changed nothing: `no-sitemap` fired on 0 of 15 both before and
 after, because all fifteen genuinely have sitemaps. The exposure was theoretical on this batch —

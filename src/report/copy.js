@@ -1,6 +1,6 @@
 // The words the document says out loud.
 //
-// Kept apart from the layout because this is the part a web shop will argue about, and because
+// Kept apart from the layout because this is the part a shop will argue about, and because
 // every string here is read by someone who did not ask for a website audit. The rule for anything
 // on page 1: if an owner would have to search for a word, it does not belong in it.
 
