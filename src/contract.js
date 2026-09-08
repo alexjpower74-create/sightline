@@ -112,6 +112,41 @@ export function emptyMeasurement (url) {
  *   reads as spam; the same document with a name on it reads as a person who did some work.
  */
 
+/**
+ * WHAT YOU CAN STAND BEHIND A WEEK LATER.
+ *
+ * An audit is one visit. Some of what it records is a property of how the site is built and will
+ * still be true when the owner checks; some is a property of the moment we looked. A report that
+ * treats them alike will eventually be argued with by an owner who is right.
+ *
+ * Observed live: Hilltop Joinery tripped `load-never-finishes` on one run and `slow-load` at 19.5
+ * seconds on the next. Same site, same collector, a few hours apart. Both statements were true
+ * about the visit that produced them.
+ *
+ * VOLATILE — quotable only as "when we checked":
+ *   timing.*                      the field that moved on Hilltop Joinery
+ *   weight.totalBytes, .requests  ad and tag networks serve a different payload per visit
+ *   freshness.brokenLinks         a link that answered 503 once is not dead (timeouts are already
+ *                                 excluded for this reason; transient 5xx are not)
+ *   mobile.horizontalOverflowPx   stable for a hard-coded width, but an injected ad or a lazy
+ *                                 image can add or remove it
+ *   unreachableReason             volatile by definition
+ *
+ * STABLE — properties of how the site is built:
+ *   mobile.hasViewportMeta        https.enabled          the whole seo block
+ *   a11y.hasMainLandmark          a11y.hasSkipLink       a11y.htmlLangSet
+ *   a11y.imagesMissingAlt / imagesTotal                  freshness.copyrightYear, .generator
+ *
+ * The convenient part: the findings that sell are almost all in the second list. A stale copyright
+ * year, no viewport meta, no HTTPS — an owner cannot dispute those and they will still be true
+ * when they look. The ones that move are mostly the speed numbers, which is exactly where the
+ * report's "when we checked" is already doing the work.
+ *
+ * No check can catch this class, and none could: it is a property of sampling once, not a defect.
+ * If it ever matters, the two fixes are measuring twice and reporting the median, or carrying a
+ * confidence marker on the volatile fields. Neither is worth building before someone is burned.
+ */
+
 /** Cheap structural validation, so a bad hand-off fails loudly at the seam instead of quietly downstream. */
 export function assertMeasurement (m) {
   const need = ['url', 'finalUrl', 'fetchedAt', 'ok', 'timing', 'weight', 'https', 'mobile', 'a11y', 'seo', 'freshness']
