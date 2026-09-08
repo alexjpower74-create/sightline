@@ -325,22 +325,26 @@ function inferGenerator (records) {
 function describe (err) {
   if (err instanceof TimeoutError) return err.message
   const raw = err?.message || String(err)
-  // net::ERR_NAME_NOT_RESOLVED and friends read like a stack trace to anyone downstream. The
-  // report puts this sentence in front of a person, so make it a sentence.
-  const map = {
-    'net::ERR_NAME_NOT_RESOLVED': 'that domain does not resolve — the site is gone or the name has lapsed',
-    'net::ERR_CONNECTION_REFUSED': 'the server refused the connection',
-    'net::ERR_CONNECTION_TIMED_OUT': 'the server never answered',
-    'net::ERR_CONNECTION_RESET': 'the server dropped the connection',
-    'net::ERR_TOO_MANY_REDIRECTS': 'the site redirects to itself in a loop and never arrives',
-    'net::ERR_CERT_COMMON_NAME_INVALID': 'the security certificate does not match this domain',
-    'net::ERR_CERT_DATE_INVALID': 'the security certificate has expired',
-    'net::ERR_SSL_PROTOCOL_ERROR': 'the secure connection could not be established',
-    'net::ERR_EMPTY_RESPONSE': 'the server answered with nothing at all',
-    'net::ERR_ADDRESS_UNREACHABLE': 'the server could not be reached'
-  }
-  for (const [code, sentence] of Object.entries(map)) if (raw.includes(code)) return `${sentence} (${code})`
+  for (const [code, sentence] of Object.entries(NETWORK_ERRORS)) if (raw.includes(code)) return `${sentence} (${code})`
   return raw
+}
+
+/**
+ * net::ERR_NAME_NOT_RESOLVED and friends read like a stack trace to anyone downstream, and this
+ * string ends up in a sentence a business owner reads about their own site. Anything not in here
+ * is passed through untranslated rather than explained away with a guess.
+ */
+export const NETWORK_ERRORS = {
+  'net::ERR_NAME_NOT_RESOLVED': 'that domain does not resolve — the site is gone or the name has lapsed',
+  'net::ERR_CONNECTION_REFUSED': 'the server refused the connection',
+  'net::ERR_CONNECTION_TIMED_OUT': 'the server never answered',
+  'net::ERR_CONNECTION_RESET': 'the server dropped the connection',
+  'net::ERR_TOO_MANY_REDIRECTS': 'the site redirects to itself in a loop and never arrives',
+  'net::ERR_CERT_COMMON_NAME_INVALID': 'the security certificate does not match this domain',
+  'net::ERR_CERT_DATE_INVALID': 'the security certificate has expired',
+  'net::ERR_SSL_PROTOCOL_ERROR': 'the secure connection could not be established',
+  'net::ERR_EMPTY_RESPONSE': 'the server answered with nothing at all',
+  'net::ERR_ADDRESS_UNREACHABLE': 'the server could not be reached'
 }
 
 export { measureHorizontalOverflow, navigate, describe }
