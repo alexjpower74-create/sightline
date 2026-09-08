@@ -6,7 +6,7 @@ import { suite } from '@alexpower/rig/harness/check.js'
 import { score, rank, stack, SCORING } from '../src/score/index.js'
 import { readFileSync } from 'node:fs'
 import { RULES } from '../src/score/rules.js'
-import { AREAS } from '../src/contract.js'
+import { AREAS, emptyMeasurement } from '../src/contract.js'
 import { writeFileSync, readFileSync as rf } from 'node:fs'
 
 // Several controls repair the fixture on disk, because `load()` reads from disk — that is the
@@ -298,4 +298,78 @@ await suite('never accuse a working site', async t => {
   })
 
   writeFileSync(SOLID, ORIGINAL_SOLID)
+})
+
+// ------------------------------------------------------------------------------------------------
+// The success case. c1's generalisation, and it is the right one: for every check asserting a
+// fault is found, there should be one asserting a good site is LEFT ALONE. Both defects found by
+// the collector on live sites lived here — a site penalised for having a skip link, and a missing
+// row in a translation table. Suites that only exercise the failure path cannot see either.
+// ------------------------------------------------------------------------------------------------
+
+await suite('a good site is left alone', async t => {
+
+  await t.check('no critical or major finding is invented against a healthy site', {
+    assert: () => {
+      const f = score(load('solid')).findings.filter(x => x.severity === 'critical' || x.severity === 'major')
+      return f.length === 0
+    },
+    // Break the site and the criticals must appear — otherwise this passes because the rules
+    // never fire at all, which is the classic way a "no false positives" check measures nothing.
+    breaks: () => {
+      const m = load('solid'); m.https.enabled = false; m.mobile.hasViewportMeta = false
+      writeFileSync(SOLID, JSON.stringify(m, null, 2))
+      return () => writeFileSync(SOLID, ORIGINAL_SOLID)
+    }
+  })
+
+  await t.check('a healthy site is told what it is doing right', {
+    // A document that can only ever say things are broken is not believed on the sites that are.
+    assert: () => score(load('solid')).findings.some(f => f.severity === 'good'),
+    breaks: () => {
+      const removed = RULES.filter(r => r.severity === 'good')
+      for (const r of removed) RULES.splice(RULES.indexOf(r), 1)
+      return () => RULES.push(...removed)
+    }
+  })
+
+  await t.check('an accessibility feature is never counted against the site that has it', {
+    // The live defect, generalised: the good fixture was penalised because its own off-canvas
+    // skip link was counted as a too-small tap target. Having a skip link must only ever help.
+    assert: () => {
+      const withLink = load('solid'); withLink.a11y.hasSkipLink = true
+      writeFileSync(SOLID, JSON.stringify(withLink, null, 2))
+      const a = score(load('solid')).score.overall
+      const without = load('solid'); without.a11y.hasSkipLink = false
+      writeFileSync(SOLID, JSON.stringify(without, null, 2))
+      const b = score(load('solid')).score.overall
+      writeFileSync(SOLID, ORIGINAL_SOLID)
+      return a >= b
+    },
+    breaks: () => {
+      // Invert the landmark rule so having a skip link actively costs points. The check must
+      // notice that the site doing the right thing now scores lower.
+      const rule = RULES.find(r => r.id === 'no-main-landmark')
+      const was = rule.when
+      rule.when = m => m.a11y.hasSkipLink
+      return () => { rule.when = was }
+    }
+  })
+
+  await t.check('every rule survives a measurement with nothing in it', {
+    // A rule that throws on an empty or partial measurement takes down the whole audit. score()
+    // swallows rule exceptions, so the only way to see this is to count what actually fired.
+    assert: () => {
+      const empty = emptyMeasurement('https://nothing.example')
+      empty.ok = true
+      const r = score(empty)
+      return r.findings.length > 0 && r.findings.every(f => typeof f.plainEnglish === 'string' && f.plainEnglish.length > 20)
+    },
+    breaks: () => {
+      const rule = RULES.find(r => r.id === 'weak-title')
+      const was = rule.plainEnglish
+      rule.plainEnglish = () => ''   // an empty sentence is a broken finding
+      return () => { rule.plainEnglish = was }
+    }
+  })
 })
