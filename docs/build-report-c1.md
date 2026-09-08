@@ -183,7 +183,7 @@ conversation works and it is the browser that could not have one — give the br
 conversation before settling for a shrug.
 
 Against the broken-h2 fixture it turns a non-answer into a real audit: `ok: true`, title, headings,
-viewport, timing, all of it. **a live site should now produce a real measurement.**
+viewport, timing, all of it. **youngsice.com should now produce a real measurement.**
 
 `checker-error` is still reached, just later: when the retry cannot rescue it either. There is a
 fixture for that too — a server that hangs up on anything asking for HTML and answers a plain
@@ -201,7 +201,7 @@ audits are untouched.
 ## A check that passed with the thing it tested switched off
 
 The harness's `goto()` was firing its load event on Chrome's own error page and reporting success —
-title `a live site`, which is the hostname, on `chrome-error://chromewebdata/`. Fixed in the rig.
+title `youngsice.com`, which is the hostname, on `chrome-error://chromewebdata/`. Fixed in the rig.
 My `navigate()` was never affected: it checks `Page.navigate`'s `errorText` before it waits for
 anything, which is why the collector reported that site correctly.
 
@@ -343,7 +343,7 @@ and with the same boundary: the collector's own confirming request validates cer
 
 ## On calling this one `blocked` — I think not, and the reason matters
 
-You raised whether a live site is closer to `blocked` than `checker-error`: curl gets a clean 200
+You raised whether youngsice.com is closer to `blocked` than `checker-error`: curl gets a clean 200
 over HTTP/2, Chrome gets a protocol error over h2 and an empty response over HTTP/1.1, consistently.
 A server that answers curl and refuses Chrome does look like a fingerprinting signature.
 
@@ -451,7 +451,7 @@ Worth knowing that `example.com` is useless as a smoke-test target here; pick an
 
 ## One visit is a sample, not a fact about a website
 
-Hilltop Joinery measured differently on two consecutive nights: `loadMs: 0` (the load event never
+Marwood Ltd measured differently on two consecutive nights: `loadMs: 0` (the load event never
 fired) on the first run, 19.5 seconds on the second. Same site, same collector, different day. Both
 are true statements about what happened when we looked, and neither is a fact about the site.
 
@@ -461,7 +461,7 @@ them alike will eventually be argued with by an owner who is right:
 
 **Volatile — true when we checked, and quotable only that way**
 
-- `timing.*` — the field that moved on Hilltop Joinery. Varies with their server load, our network, and
+- `timing.*` — the field that moved on Marwood Ltd. Varies with their server load, our network, and
   whichever third-party script is slow today.
 - `weight.totalBytes` / `requests` — ad and tag networks serve different payloads per visit.
 - `freshness.brokenLinks` — a link that answered 503 once is not a dead link. Timeouts are already

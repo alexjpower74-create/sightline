@@ -46,7 +46,7 @@ export async function collect (url, opts = {}) {
   // Never declare a site down on one tool's word.
   //
   // This exists because we did exactly that to a real business. Chrome could not negotiate HTTP/2
-  // with a live site and returned ERR_HTTP2_PROTOCOL_ERROR; the report went out saying "anyone
+  // with youngsice.com and returned ERR_HTTP2_PROTOCOL_ERROR; the report went out saying "anyone
   // who looks you up right now sees an error page instead of your business". curl got a 200 in
   // 1.3 seconds. The site was fine. Our checker was not.
   const second = await confirmUnreachable(url, opts)
@@ -75,7 +75,7 @@ export async function collect (url, opts = {}) {
       note({ kind: 'retry', outcome: 'measured over HTTP/1.1' })
       return retry.m
     }
-    // The retry failed too, and HOW it failed is worth keeping. On a live site the first attempt
+    // The retry failed too, and HOW it failed is worth keeping. On youngsice.com the first attempt
     // gets ERR_HTTP2_PROTOCOL_ERROR and the HTTP/1.1 attempt gets ERR_EMPTY_RESPONSE — two
     // different refusals, which is a materially more interesting fact than one repeated.
     retriedWith = rawCodeOf(retry.err) || (retry.err ? describe(retry.err) : 'no page')

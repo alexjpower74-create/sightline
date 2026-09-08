@@ -1,0 +1,17 @@
+[
+  { "name": "Bluebird Construction",        "url": "https://bluebirdconstruction.ca",   "town": "Grand Falls-Windsor", "sector": "construction" },
+  { "name": "Dawe's Mechanical",            "url": "https://dawesmechanical.com",       "town": "Grand Falls-Windsor", "sector": "mechanical" },
+  { "name": "Exploits Welding",             "url": "https://exploitswelding.ca",        "town": "Grand Falls-Windsor", "sector": "fabrication" },
+  { "name": "Landmark Surveys",             "url": "https://landmarksurveys.ca",        "town": "Grand Falls-Windsor", "sector": "surveying" },
+  { "name": "Feltham's Construction",       "url": "https://felthamsconstruction.ca",   "town": "Glovertown",          "sector": "construction" },
+  { "name": "G & R Contracting",            "url": "https://grcontracting.ca",          "town": "Sandringham",         "sector": "construction" },
+  { "name": "GMK Equipment Rentals",        "url": "https://gmkequipmentrentals.ca",    "town": "Port Blandford",      "sector": "equipment" },
+  { "name": "H. Wareham & Sons",            "url": "https://hwarehamandsons.com",       "town": "Gander",              "sector": "construction" },
+  { "name": "McCarthy's Heating Service",   "url": "https://mccarthysheating.weebly.com","town": "Gander",             "sector": "trades" },
+  { "name": "Coastal Coatings",             "url": "https://coastalcoatings.ca",        "town": "Wesleyville",         "sector": "industrial" },
+  { "name": "Marwood Ltd",                  "url": "https://marwoodltd.com",            "town": "Jamestown",           "sector": "manufacturing" },
+  { "name": "Petroleum & Environmental Services", "url": "https://pesnl.ca",            "town": "Glenwood",            "sector": "environmental" },
+  { "name": "Six-Sixty Services",           "url": "https://six-sixty.com",             "town": "Bloomfield",          "sector": "industrial" },
+  { "name": "Young's Industrial Refrigeration", "url": "https://youngsice.com",         "town": "Lethbridge",          "sector": "refrigeration" },
+  { "name": "Drycore Eastern",              "url": "https://drycore.com",               "town": "Terra Nova",          "sector": "restoration" }
+]

@@ -129,7 +129,7 @@ await suite('resilience', async t => {
       const m = await collect(server.url('/huge'), { browser, screenshots: false, timeoutMs: 2500 })
       const elapsed = Date.now() - started
       // The budget covers the measurement; confirming with a plain request is allowed a further
-      // 5s on top, because never calling a live site dead is worth one more request.
+      // 5s on top, because never calling youngsice.com dead is worth one more request.
       return wellFormed(m) && m.ok === false && /gave up after 2500ms/.test(m.error) && elapsed < 10_000
     },
     breaks: flip('hugeChunks', 5)     // small enough to finish well inside 2.5s

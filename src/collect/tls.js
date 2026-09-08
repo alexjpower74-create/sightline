@@ -54,7 +54,7 @@ export function chromeWrapperPath () {
  * A server that negotiates HTTP/2 and then talks nonsense, while serving perfectly good HTTP/1.1
  * to anything that asks for it.
  *
- * This is the shape of the a live site failure: Chrome prefers h2, cannot make sense of what
+ * This is the shape of the youngsice.com failure: Chrome prefers h2, cannot make sense of what
  * comes back, and gives up with ERR_HTTP2_PROTOCOL_ERROR — while curl, which asks for HTTP/1.1,
  * gets a 200 in a second and a bit. The site is fine. The browser is not.
  */

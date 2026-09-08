@@ -134,7 +134,7 @@ export function emptyMeasurement (url) {
  * still be true when the owner checks; some is a property of the moment we looked. A report that
  * treats them alike will eventually be argued with by an owner who is right.
  *
- * Observed live: Hilltop Joinery tripped `load-never-finishes` on one run and `slow-load` at 19.5
+ * Observed live: Marwood Ltd tripped `load-never-finishes` on one run and `slow-load` at 19.5
  * seconds on the next. Same site, same collector, a few hours apart. Both statements were true
  * about the visit that produced them.
  *
@@ -142,7 +142,7 @@ export function emptyMeasurement (url) {
  * written to prevent.
  *
  * VOLATILE — quotable only as "when we checked":
- *   timing.*                      the field that moved on Hilltop Joinery
+ *   timing.*                      the field that moved on Marwood Ltd
  *   weight.totalBytes, .requests, .imageBytes, .scriptBytes, .largestImage
  *                                 ad and tag networks serve a different payload per visit
  *   freshness.brokenLinks         a link that answered 503 once is not dead (timeouts are already

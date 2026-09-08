@@ -258,7 +258,7 @@ await suite('never accuse a working site', async t => {
   }
 
   await t.check('a checker-side failure is not written up as the site being down', {
-    // a live site. Chrome returned ERR_HTTP2_PROTOCOL_ERROR; curl returned 200 in 1.3s. The
+    // youngsice.com. Chrome returned ERR_HTTP2_PROTOCOL_ERROR; curl returned 200 in 1.3s. The
     // report told a real business their site was down. It was not.
     assert: () => {
       const { score: s, findings } = score(load('unreachable'))

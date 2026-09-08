@@ -24,7 +24,7 @@ import {
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
 
-/** Everything measured off a live site is attacker-controlled text. Page titles especially. */
+/** Everything measured off youngsice.com is attacker-controlled text. Page titles especially. */
 export function esc (v) {
   if (v == null) return ''
   return String(v).replace(/[&<>"']/g, c => ESC[c])

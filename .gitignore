@@ -4,5 +4,3 @@ out/
 *.pdf
 .DS_Store
 
-# Prospect lists are the operator's business data, not the tool's.
-prospects/

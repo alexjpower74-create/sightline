@@ -1,7 +1,7 @@
 // Never declare a site down on one tool's word.
 //
 // This file exists because we did exactly that to a real business. Chrome could not negotiate
-// HTTP/2 with a live site, returned ERR_HTTP2_PROTOCOL_ERROR, and the report went out telling
+// HTTP/2 with youngsice.com, returned ERR_HTTP2_PROTOCOL_ERROR, and the report went out telling
 // the owner that "anyone who looks you up right now sees an error page instead of your business".
 // curl got a 200 in 1.3 seconds. The site was fine.
 //
@@ -50,7 +50,7 @@ await suite('our failure is not their fault', async t => {
 
 
   // RED IF: a site whose server speaks broken HTTP/2 is written off instead of measured. This is
-  // the a live site site: Chrome cannot negotiate h2, a plain request gets a 200, and the answer
+  // the youngsice.com site: Chrome cannot negotiate h2, a plain request gets a 200, and the answer
   // is neither "you are down" nor a shrug — it is a real audit taken over HTTP/1.1.
   await check('a server with broken HTTP/2 is measured over HTTP/1.1, not written off', {
     assert: async () => {
