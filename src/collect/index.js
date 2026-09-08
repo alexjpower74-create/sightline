@@ -106,6 +106,7 @@ async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
 
   let browser = opts.browser || null
   const borrowedBrowser = !!opts.browser
+  let launching = null
   let timer = null
   let failure = null
 
@@ -116,12 +117,22 @@ async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
     })
     const work = (async () => {
       if (!browser) {
-        browser = await launch({
+        // Held as a promise as well as a value: if the deadline fires while Chrome is still
+        // starting, `browser` is still null when the finally runs, and closing null leaks the
+        // browser that arrives a moment later. One per timed-out site, on a long call list.
+        //
+        // The promise is assigned SYNCHRONOUSLY, before anything is awaited. The first version of
+        // this put `await freePort()` inside the argument object, which suspends before `launching`
+        // exists — so a deadline landing in that window found both the value and the promise still
+        // null and leaked the browser anyway. That window is a millisecond wide and it leaked on
+        // every run.
+        launching = (async () => launch({
           headless: opts.headless ?? true,
           port: opts.port ?? await freePort(),
           width: DESKTOP.width, height: DESKTOP.height,
           args: chromeArgs
-        })
+        }))()
+        browser = await launching
       }
       await runPasses(browser, url, m, { ...opts, deadline, note })
     })()
@@ -140,7 +151,11 @@ async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
     }
   } finally {
     clearTimeout(timer)
-    if (browser && !borrowedBrowser) { try { await browser.close() } catch { /* it is going away regardless */ } }
+    if (!borrowedBrowser) {
+      // Whatever the launch produced, even if it arrived after we stopped waiting for it.
+      const started = browser || (launching ? await launching.catch(() => null) : null)
+      if (started) { try { await started.close() } catch { /* it is going away regardless */ } }
+    }
   }
   return { m, err: failure }
 }
