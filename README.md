@@ -108,6 +108,13 @@ https://example-construction.ca  ->  27/100 (urgent)
 **Say what to fix, not just what is wrong.** "The widest thing on it is a table, at 900 pixels on a
 390 pixel screen" is an instruction. "Your page overflows by 510px" is a complaint.
 
+**Know which findings survive the week.** An audit is one visit. `timing`, page weight, broken
+links and overflow can all differ between two runs of the same site — one fixture site tripped
+"never finishes loading" on one run and "19.5 seconds to load" on the next. Whether a site has a
+viewport tag, HTTPS, a page title, alt text or a 2014 copyright notice does not move. The findings
+that sell are almost all in the second group, and the ones that move are the speed numbers, where
+the report already says "when we checked". `src/contract.js` classifies every field.
+
 **Every finding is checkable.** Nothing is asserted that a developer cannot verify in a minute. Two
 findings from the first live run were checked by hand against the sites in question before this was
 shown to anyone.
