@@ -123,19 +123,43 @@ export function emptyMeasurement (url) {
  * seconds on the next. Same site, same collector, a few hours apart. Both statements were true
  * about the visit that produced them.
  *
+ * This covers every field. A partial classification invites exactly the confident guess it was
+ * written to prevent.
+ *
  * VOLATILE — quotable only as "when we checked":
  *   timing.*                      the field that moved on Hilltop Joinery
- *   weight.totalBytes, .requests  ad and tag networks serve a different payload per visit
+ *   weight.totalBytes, .requests, .imageBytes, .scriptBytes, .largestImage
+ *                                 ad and tag networks serve a different payload per visit
  *   freshness.brokenLinks         a link that answered 503 once is not dead (timeouts are already
  *                                 excluded for this reason; transient 5xx are not)
  *   mobile.horizontalOverflowPx   stable for a hard-coded width, but an injected ad or a lazy
  *                                 image can add or remove it
+ *   mobile.overflowCulprit        follows horizontalOverflowPx, inherits its volatility
  *   unreachableReason             volatile by definition
  *
  * STABLE — properties of how the site is built:
- *   mobile.hasViewportMeta        https.enabled          the whole seo block
+ *   mobile.hasViewportMeta, .viewportContent             https.enabled, .redirectsToHttps
+ *   seo.title, .metaDescription, .h1Count, .canonical, .ogTags, .structuredDataTypes
  *   a11y.hasMainLandmark          a11y.hasSkipLink       a11y.htmlLangSet
  *   a11y.imagesMissingAlt / imagesTotal                  freshness.copyrightYear, .generator
+ *
+ * STABLE PROPERTY, FLAKY MEASUREMENT — the site does not change, our reading of it might:
+ *   seo.hasRobotsTxt, .hasSitemap  network probes, not page reads: a GET with a short timeout and
+ *                                 a retry on 5xx. Whether a site HAS a sitemap is stable; whether
+ *                                 we saw it is not, and the finding is categorical and disputable.
+ *                                 "You have no sitemap" to an owner who has one costs you the rest
+ *                                 of the document. The probe retries rather than the field being
+ *                                 downgraded, because the thing measured really is stable.
+ *   mobile.tapTargetsUnder44, .smallestTapTargetPx
+ *                                 layout is stable, but a cookie banner or lazily-inserted content
+ *                                 changes what is hit-testable; the count can move by a few.
+ *   a11y.lowContrastNodes         a property of the CSS, but it is already a floor rather than a
+ *                                 count — a background image appearing on one visit lowers it.
+ *   https.mixedContent, .certificateProblem
+ *                                 stable in practice; a certificate expires on a date, and that
+ *                                 date can fall between two runs.
+ *   freshness.lastModified        stable when present, absent on most dynamic sites — so its
+ *                                 absence means nothing and must never be reported as a finding.
  *
  * The convenient part: the findings that sell are almost all in the second list. A stale copyright
  * year, no viewport meta, no HTTPS — an owner cannot dispute those and they will still be true
