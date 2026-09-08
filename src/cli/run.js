@@ -6,7 +6,7 @@
 
 import { score, rank, explain } from '../score/index.js'
 import { assertAudit } from '../contract.js'
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 
 async function need (spec, what) {
@@ -44,6 +44,20 @@ export async function auditMany (businesses, opts = {}) {
     }
   }
   return rank(audits)
+}
+
+/**
+ * Full-resolution captures are evidence and stay on disk, but they are not what someone opening
+ * this folder is looking for. 15 reports next to 30 screenshots is a folder you have to search;
+ * 15 reports and one clearly-named subfolder is a folder you can use.
+ */
+export function tidyScreenshots (outDir) {
+  const shots = readdirSync(outDir).filter(f => /\.(png|jpe?g)$/i.test(f))
+  if (!shots.length) return 0
+  const dir = join(outDir, 'screenshots')
+  mkdirSync(dir, { recursive: true })
+  for (const f of shots) renameSync(join(outDir, f), join(dir, f))
+  return shots.length
 }
 
 export async function writeReports (audits, outDir) {
