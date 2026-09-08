@@ -97,7 +97,11 @@ export function view (audit, opts = {}) {
     moreOverleaf: Math.max(0, problems.length - shownOnPageOne),
     areasRanked,
     generatedAt: audit.generatedAt || m.fetchedAt || null,
-    preparedBy: opts.preparedBy || null,
+    // The audit carries who did the work; the option is an override for a one-off re-render.
+    // Reading only the option was a real hole: `renderHtml(audit)` is the documented signature and
+    // the one the tests and preview use, and it dropped the signature even when the audit had it.
+    // It happened to work end to end only because the CLI passes the same value both ways.
+    preparedBy: opts.preparedBy || audit.preparedBy || null,
     // Different budgets, because the two shots are printed at very different sizes. The phone
     // capture appears at 54mm in the rail and 48mm on page 3 — about 640px at 300dpi — while the
     // desktop shot gets the full 120mm column. Embedding a 2880px-wide capture for either is
@@ -457,7 +461,8 @@ function methodNote (v) {
 
 /**
  * @param {import('../contract.js').Audit} audit
- * @param {{preparedBy?:string}} [opts]
+ * @param {{preparedBy?:string, imageQuality?:number, compressImages?:boolean}} [opts]
+ *   `preparedBy` overrides `audit.preparedBy`; normally the audit carries it.
  * @returns {string} a complete, self-contained HTML document
  */
 export function renderHtml (audit, opts = {}) {

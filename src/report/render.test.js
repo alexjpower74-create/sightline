@@ -323,6 +323,30 @@ await suite('report / render', async s => {
     }
   })
 
+  /* ── who sent this ──────────────────────────────────────────────────────────────────────── */
+
+  // An audit arriving unsigned from a stranger is a piece of spam with a score on it, and every
+  // report shipped before the contract gained this field went out unsigned.
+  //
+  // Red if: an audit that names its sender renders without the name. The audit is rendered with NO
+  // options on purpose — that is the documented signature, and reading only `opts.preparedBy` is
+  // exactly the hole this check exists to hold shut. It passed end to end regardless, because the
+  // CLI happens to pass the same value both ways.
+  // Control: take the field off the audit; the masthead must lose the name.
+  const signed = sampleAudit('neglected', { preparedBy: 'Example Web Studio' })
+  await s.check('the audit signs itself without being asked to', {
+    assert: () => {
+      const p1 = sheet(renderHtml(signed), 'owner')
+      return p1.includes('Prepared by Example Web Studio') &&
+             sheet(renderHtml(signed, { preparedBy: 'Someone Else' }), 'owner').includes('Prepared by Someone Else')
+    },
+    breaks: () => {
+      const before = signed.preparedBy
+      delete signed.preparedBy
+      return () => { signed.preparedBy = before }
+    }
+  })
+
   /* ── hostile text ───────────────────────────────────────────────────────────────────────── */
 
   // Every string in an Audit was read off somebody else's website. Red if: any of it reaches the
