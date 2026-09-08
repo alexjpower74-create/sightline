@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- A stand-in for the kind of site this tool is pointed at: a 2014 desktop-only brochure build.
+     It exists so the report's screenshot path can be exercised without going near the live
+     internet. Collecting screenshots off real sites is c1's job, not this slice's. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bayline Construction Ltd.</title>
+<!-- No viewport meta, deliberately. This is what makes a phone lay the page out at 980px. -->
+<style>
+  body { margin:0; font-family: Georgia, serif; color:#333; width: 980px; }
+  .top { background:#1d3b57; color:#fff; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+  .top h1 { margin:0; font-size:26px; letter-spacing:.5px; }
+  .top nav a { color:#b9cbdd; text-decoration:none; font-size:12px; margin-left:16px; }
+  .hero { height:280px; background:#7d8b96 linear-gradient(160deg,#8c99a4,#5d6b77); position:relative; }
+  .hero .plate { position:absolute; left:40px; bottom:36px; background:rgba(255,255,255,.9); padding:18px 24px; }
+  .hero h2 { margin:0 0 6px; font-size:30px; color:#1d3b57; }
+  .hero p { margin:0; font-size:14px; color:#6a6a6a; }
+  .cols { display:flex; gap:24px; padding:28px 24px; }
+  .cols div { flex:1; }
+  .cols h3 { font-size:16px; color:#1d3b57; margin:0 0 8px; }
+  .cols p { font-size:13px; line-height:1.6; margin:0; }
+  .wide { width:1240px; background:#eee; padding:18px 24px; font-size:13px; }
+  .foot { background:#1d3b57; color:#9fb3c6; padding:16px 24px; font-size:11px; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>Bayline Construction Ltd.</h1>
+    <nav><a href="#">Home</a><a href="#">Services</a><a href="#">Projects</a><a href="#">Contact</a></nav>
+  </div>
+  <div class="hero"><div class="plate"><h2>Building in central NL since 1987</h2><p>Residential · Commercial · Renovations</p></div></div>
+  <div class="cols">
+    <div><h3>Residential</h3><p>New builds, extensions and full renovations across the Green Bay area, from foundation to finish.</p></div>
+    <div><h3>Commercial</h3><p>Fit-outs, warehousing and small industrial work for local businesses and the town council.</p></div>
+    <div><h3>Service</h3><p>Roofing, siding, decks and the small jobs nobody else will take on at short notice.</p></div>
+  </div>
+  <!-- A table wider than the body. This is the element that produces the sideways scroll. -->
+  <div class="wide">Call us on 709-555-0142 &nbsp;·&nbsp; Unit 4, Industrial Park Road, Springdale NL &nbsp;·&nbsp; Open Monday to Friday, 8am until 5pm, and Saturday mornings by arrangement</div>
+  <div class="foot">&copy; 2014 Bayline Construction Ltd. All rights reserved.</div>
+</body>
+</html>

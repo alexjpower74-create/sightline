@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wide content, clipped at the root</title>
+<style>
+  html, body { overflow-x: hidden; }
+  body { margin: 0; font: 16px/1.4 sans-serif; color: #111; background: #fff; }
+  /* 900px of content on a 390px screen — but the root clips, so nothing slides and the visitor
+     sees nothing move. Reporting a sideways scroll here would be a false positive on the
+     heaviest-weighted rule in the catalogue. */
+  .wide { width: 900px; height: 120px; background: #eee; }
+</style>
+</head>
+<body>
+<h1>Clipped</h1>
+<div class="wide">Wider than the screen, but the root clips it.</div>
+</body>
+</html>

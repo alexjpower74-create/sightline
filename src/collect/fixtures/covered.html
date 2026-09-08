@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A button under a header</title>
+<style>
+  body { margin: 0; font: 16px/1.5 sans-serif; color: #111; background: #fff; }
+  /* A sticky bar that sits over the top of the page. `getBoundingClientRect` reports the button
+     underneath it as a healthy 30px box; a finger lands on the bar. */
+  .bar { position: fixed; top: 0; left: 0; right: 0; height: 120px; background: #14425f; }
+  .under { display: inline-block; width: 30px; height: 30px; margin-top: 40px; }
+  .clear { display: inline-block; width: 30px; height: 30px; margin-top: 400px; }
+  .big { display: inline-block; width: 60px; height: 60px; }
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<a class="under" href="/a">1</a>
+<a class="under" href="/b">2</a>
+<div><a class="clear" href="/c">3</a></div>
+<div><a class="big" href="/d">4</a></div>
+</body>
+</html>
