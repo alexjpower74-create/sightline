@@ -1,0 +1,295 @@
+{
+  "neglected": {
+    "score": {
+      "overall": 27,
+      "areas": {
+        "performance": 26,
+        "mobile": 11,
+        "accessibility": 32,
+        "seo": 43,
+        "trust": 25
+      },
+      "band": "urgent",
+      "line": "losing you business today",
+      "hook": "Your site was built before phones mattered, and it still behaves that way. On a phone it loads zoomed out, so everything is too small to read until the visitor pinches in. Most of them will not bother."
+    },
+    "findings": [
+      {
+        "id": "no-viewport-meta",
+        "area": "mobile",
+        "severity": "critical",
+        "title": "Site was never set up for phones",
+        "plainEnglish": "Your site was built before phones mattered, and it still behaves that way. On a phone it loads zoomed out, so everything is too small to read until the visitor pinches in. Most of them will not bother.",
+        "evidence": "no viewport meta tag — the page is served to phones at desktop width",
+        "effort": "moderate",
+        "penalty": 55
+      },
+      {
+        "id": "no-https",
+        "area": "trust",
+        "severity": "critical",
+        "title": "Browsers mark the site \"Not secure\"",
+        "plainEnglish": "Chrome and Safari label your site \"Not secure\" in the address bar. Nothing is actually wrong with your business — the certificate is usually free and takes an hour — but every visitor sees that warning before they see your work.",
+        "evidence": "served over http, no redirect to https",
+        "effort": "quick",
+        "penalty": 50
+      },
+      {
+        "id": "page-far-too-heavy",
+        "area": "performance",
+        "severity": "critical",
+        "title": "Page is enormous",
+        "plainEnglish": "Your home page is 14.8 MB. That is roughly a hundred times what it needs to be. On a phone outside town it will not finish loading before the visitor leaves, and it eats their data allowance while they wait.",
+        "evidence": "14.8 MB over 118 requests; largest image 4.6 MB",
+        "effort": "moderate",
+        "penalty": 45
+      },
+      {
+        "id": "horizontal-overflow",
+        "area": "mobile",
+        "severity": "critical",
+        "title": "Page slides sideways on a phone",
+        "plainEnglish": "On a phone your page is wider than the screen, so it slides side to side while people try to read it. It reads as broken even to visitors who could not tell you why.",
+        "evidence": "412px of horizontal scroll at 390px wide",
+        "effort": "moderate",
+        "penalty": 40
+      },
+      {
+        "id": "weak-title",
+        "area": "seo",
+        "severity": "critical",
+        "title": "Google has nothing useful to show",
+        "plainEnglish": "The blue headline Google shows for you reads \"Home\". It should say what you do and where you do it, because that line is most of the reason somebody clicks you instead of the next result.",
+        "evidence": "page title is \"Home\"",
+        "effort": "quick",
+        "penalty": 35
+      },
+      {
+        "id": "inputs-missing-label",
+        "area": "accessibility",
+        "severity": "critical",
+        "title": "Form fields are unlabelled",
+        "plainEnglish": "5 of the boxes on your contact form have no label attached. Someone using a screen reader is asked to type into a box with no idea what it wants — which means your enquiry form does not work for them.",
+        "evidence": "5 form field(s) with no associated label",
+        "effort": "quick",
+        "penalty": 35
+      },
+      {
+        "id": "slow-load",
+        "area": "performance",
+        "severity": "critical",
+        "title": "Page takes too long to appear",
+        "plainEnglish": "Your site takes 11.4 seconds to load. Visitors start leaving at about three, and Google has been ranking slow sites lower for years, so this costs you twice.",
+        "evidence": "11.4 seconds to finish loading, 1.8 seconds before the server even answered",
+        "effort": "moderate",
+        "penalty": 35
+      },
+      {
+        "id": "images-missing-alt",
+        "area": "accessibility",
+        "severity": "major",
+        "title": "Pictures have no description",
+        "plainEnglish": "24 of your 31 pictures have no written description. Anyone using a screen reader hears silence where your work should be, and Google cannot read them either.",
+        "evidence": "24 of 31 images have no alt text",
+        "effort": "quick",
+        "penalty": 30
+      },
+      {
+        "id": "stale-copyright",
+        "area": "trust",
+        "severity": "major",
+        "title": "Site looks abandoned",
+        "plainEnglish": "Your footer still says 2014. To someone deciding whether to call you, that reads as \"these people may not be in business any more.\"",
+        "evidence": "footer reads © 2014",
+        "effort": "quick",
+        "penalty": 25
+      },
+      {
+        "id": "low-contrast",
+        "area": "accessibility",
+        "severity": "major",
+        "title": "Text is too faint to read",
+        "plainEnglish": "Some of your text is too pale against its background to read comfortably — outdoors, on an older screen, or by anyone whose eyes are not what they were. It is a colour change, not a rebuild.",
+        "evidence": "12 text nodes below WCAG AA contrast",
+        "effort": "moderate",
+        "penalty": 22
+      },
+      {
+        "id": "broken-links",
+        "area": "trust",
+        "severity": "major",
+        "title": "Links that go nowhere",
+        "plainEnglish": "2 links on your site lead to a \"page not found\" error. One of them is usually the one somebody clicked to reach you.",
+        "evidence": "2 broken link(s): /services/roofing, /contact-us.html",
+        "effort": "quick",
+        "penalty": 20
+      },
+      {
+        "id": "no-meta-description",
+        "area": "seo",
+        "severity": "major",
+        "title": "No description in search results",
+        "plainEnglish": "Under your name in Google there should be two lines describing your business. You have not written them, so Google grabs whatever text it finds first — often a menu.",
+        "evidence": "no meta description",
+        "effort": "quick",
+        "penalty": 18
+      },
+      {
+        "id": "tap-targets-small",
+        "area": "mobile",
+        "severity": "major",
+        "title": "Buttons and links are too small to tap",
+        "plainEnglish": "17 of your buttons and links are too small to hit reliably with a thumb. People miss, land on the wrong thing, and give up — usually on the way to phoning you.",
+        "evidence": "17 tap targets under 44px, smallest 18px",
+        "effort": "moderate",
+        "penalty": 18
+      },
+      {
+        "id": "no-h1",
+        "area": "seo",
+        "severity": "major",
+        "title": "Page has no main heading",
+        "plainEnglish": "Your page never states its own headline in a way search engines can read, so Google has to guess what the page is about.",
+        "evidence": "no <h1> on the page",
+        "effort": "quick",
+        "penalty": 15
+      },
+      {
+        "id": "slow-server",
+        "area": "performance",
+        "severity": "major",
+        "title": "Server is slow to respond",
+        "plainEnglish": "Before your site can even begin to load, there is a long pause while the hosting answers. That pause is on every single page, for every visitor.",
+        "evidence": "1.8 seconds to first byte",
+        "effort": "moderate",
+        "penalty": 15
+      },
+      {
+        "id": "no-local-business-schema",
+        "area": "seo",
+        "severity": "minor",
+        "title": "Not marked up as a local business",
+        "plainEnglish": "Your address, hours and phone number are not written in the format Google reads for map results. That is the box people use when they are looking for someone nearby, right now.",
+        "evidence": "no structured data",
+        "effort": "quick",
+        "penalty": 10
+      },
+      {
+        "id": "no-lang",
+        "area": "accessibility",
+        "severity": "minor",
+        "title": "Page does not declare its language",
+        "plainEnglish": "Your page never says which language it is written in, so screen readers may read it aloud with the wrong accent and pronunciation.",
+        "evidence": "no lang attribute on <html>",
+        "effort": "quick",
+        "penalty": 10
+      },
+      {
+        "id": "no-sitemap",
+        "area": "seo",
+        "severity": "minor",
+        "title": "No sitemap",
+        "plainEnglish": "There is no index telling search engines what pages you have, so some of them may never be found at all.",
+        "evidence": "no sitemap.xml found",
+        "effort": "quick",
+        "penalty": 8
+      },
+      {
+        "id": "no-main-landmark",
+        "area": "accessibility",
+        "severity": "minor",
+        "title": "No way to skip past the menu",
+        "plainEnglish": "Someone navigating by keyboard has to tab through your entire menu on every single page before reaching the content.",
+        "evidence": "no <main> landmark and no skip link",
+        "effort": "moderate",
+        "penalty": 8
+      }
+    ]
+  },
+  "solid": {
+    "score": {
+      "overall": 97,
+      "areas": {
+        "performance": 100,
+        "mobile": 95,
+        "accessibility": 92,
+        "seo": 100,
+        "trust": 100
+      },
+      "band": "strong",
+      "line": "in good shape",
+      "hook": "2 of your pictures are missing a written description. It is a small job and it helps both screen readers and Google."
+    },
+    "findings": [
+      {
+        "id": "some-images-missing-alt",
+        "area": "accessibility",
+        "severity": "minor",
+        "title": "A few pictures have no description",
+        "plainEnglish": "2 of your pictures are missing a written description. It is a small job and it helps both screen readers and Google.",
+        "evidence": "2 of 18 images have no alt text",
+        "effort": "quick",
+        "penalty": 8
+      },
+      {
+        "id": "a-few-small-tap-targets",
+        "area": "mobile",
+        "severity": "minor",
+        "title": "A couple of links are small for a thumb",
+        "plainEnglish": "1 link is a little small to hit comfortably on a phone. Worth nudging up next time the site is touched.",
+        "evidence": "1 tap target(s) under 44px",
+        "effort": "quick",
+        "penalty": 5
+      },
+      {
+        "id": "good-https",
+        "area": "trust",
+        "severity": "good",
+        "title": "Secure connection in place",
+        "plainEnglish": "Your site is served securely and browsers are happy with it.",
+        "evidence": "https with no mixed content",
+        "effort": "quick",
+        "penalty": 0
+      },
+      {
+        "id": "good-mobile",
+        "area": "mobile",
+        "severity": "good",
+        "title": "Works properly on a phone",
+        "plainEnglish": "Your site fits a phone screen properly, which is where most of your visitors are.",
+        "evidence": "responsive, no sideways scroll at 390px",
+        "effort": "quick",
+        "penalty": 0
+      },
+      {
+        "id": "good-speed",
+        "area": "performance",
+        "severity": "good",
+        "title": "Loads quickly",
+        "plainEnglish": "Your site loads quickly, which visitors notice even if they never mention it.",
+        "evidence": "1.6 seconds, 1.2 MB",
+        "effort": "quick",
+        "penalty": 0
+      }
+    ]
+  },
+  "unreachable": {
+    "score": {
+      "overall": null,
+      "areas": {},
+      "band": "unreachable",
+      "hook": "We could not reach your website at all when we checked."
+    },
+    "findings": [
+      {
+        "id": "unreachable",
+        "area": "trust",
+        "severity": "critical",
+        "title": "Site could not be reached",
+        "plainEnglish": "Your website did not respond when we tried to visit it. Anyone who looks you up right now sees an error page instead of your business.",
+        "evidence": "ENOTFOUND",
+        "effort": "moderate"
+      }
+    ]
+  }
+}
