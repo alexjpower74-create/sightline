@@ -14,6 +14,6 @@
     "test": "node --test test/"
   },
   "devDependencies": {
-    "@alexpower/rig": "file:../rig"
+    "@alexpower/rig": "file:../Rig"
   }
 }

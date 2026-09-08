@@ -121,7 +121,7 @@ shown to anyone.
 
 ## How it is built
 
-Three agents on file-ownership slices, coordinated with [rig](../rig): a collector, a scorer, and a
+Three agents on file-ownership slices, coordinated with [rig](https://github.com/alexjpower74-create/rig): a collector, a scorer, and a
 renderer, with one contract file between them owned by one agent. 100+ checks across the build, all
 with negative controls — every green assertion is run again against a deliberately broken version
 of the thing it watches, and if it still passes it is reported VOID and the run fails.
