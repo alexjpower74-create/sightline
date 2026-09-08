@@ -1,0 +1,323 @@
+/* Sightline report — print stylesheet.
+ *
+ * Constraint that shapes everything below: this is printed on whatever inkjet is in the corner of
+ * a small office. So the ground stays white, and colour appears only in type, hairlines, and marks
+ * a few millimetres across. There is one accent, used for one thing (critical), because a document
+ * that colour-codes five categories reads as a dashboard, and nobody signs a dashboard.
+ */
+
+@page { size: letter; margin: 15mm 16mm 14mm; }
+
+:root {
+  --ink:        #14161a;
+  --ink-2:      #4a4f57;
+  --ink-3:      #797f88;
+  --rule:       #cbd0d6;
+  --rule-soft:  #e6e9ec;
+  --accent:     #8c2f24;   /* critical only */
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans:  "Public Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono:  "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+p { margin: 0 0 0.75em; }
+p:last-child { margin-bottom: 0; }
+
+/* ── Sheets ──────────────────────────────────────────────────────────────────────────────── */
+
+.sheet { break-after: page; }
+.sheet:last-child { break-after: auto; }
+
+/* On screen the sheets get a paper edge, so a preview reads as the printed thing.
+   None of this reaches the printer. */
+@media screen {
+  body { background: #f2f3f4; padding: 24px 0; }
+  .sheet {
+    width: 216mm;
+    min-height: 279mm;
+    margin: 0 auto 24px;
+    padding: 15mm 16mm 14mm;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 12px 28px rgba(0,0,0,.10);
+  }
+}
+
+/* ── Masthead ────────────────────────────────────────────────────────────────────────────── */
+
+.masthead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12mm; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 6.8pt;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 2mm;
+}
+
+.masthead h1 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 25pt;
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  margin: 0;
+}
+
+.masthead .who { font-size: 8.5pt; color: var(--ink-2); margin-top: 1.5mm; }
+.masthead .who .sep { color: var(--rule); padding: 0 .4em; }
+
+.masthead .issued { text-align: right; font-size: 7.5pt; color: var(--ink-3); line-height: 1.45; white-space: nowrap; }
+.masthead .issued strong { display: block; color: var(--ink); font-weight: 600; font-size: 8.5pt; }
+
+.rule-heavy { border: 0; border-top: 1.2pt solid var(--ink); margin: 3.5mm 0 0; }
+.rule       { border: 0; border-top: .5pt solid var(--rule); margin: 6mm 0; }
+.rule-soft  { border: 0; border-top: .5pt solid var(--rule-soft); margin: 4mm 0; }
+
+/* ── Section headings ────────────────────────────────────────────────────────────────────── */
+
+.section-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 6mm;
+  border-bottom: .5pt solid var(--rule);
+  padding-bottom: 1.6mm;
+  margin: 0 0 4mm;
+}
+.section-head h2 {
+  font-family: var(--sans);
+  font-size: 8pt; font-weight: 700;
+  letter-spacing: .13em; text-transform: uppercase;
+  margin: 0;
+}
+.section-head .aside { font-size: 7.5pt; color: var(--ink-3); }
+
+/* ── The score ───────────────────────────────────────────────────────────────────────────── */
+
+.verdict { display: flex; gap: 10mm; align-items: flex-start; margin-top: 7mm; }
+
+.score-block { flex: 0 0 46mm; }
+
+.score-number {
+  font-family: var(--serif); font-weight: 600;
+  font-size: 62pt; line-height: .82; letter-spacing: -.03em;
+}
+.score-number .of { font-size: 13pt; color: var(--ink-3); letter-spacing: 0; margin-left: 1mm; }
+
+.score-band {
+  margin-top: 3mm; padding-top: 2mm;
+  border-top: 1.2pt solid var(--ink);
+  font-size: 9pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+
+.score-caveat { margin-top: 2.5mm; font-size: 6.8pt; line-height: 1.42; color: var(--ink-3); }
+
+.verdict-text { flex: 1 1 auto; }
+.verdict-text .say {
+  font-family: var(--serif); font-weight: 600;
+  font-size: 16pt; line-height: 1.24; letter-spacing: -.01em;
+  margin: 0 0 3mm;
+}
+.verdict-text .follow { font-size: 9pt; color: var(--ink-2); margin: 0 0 4.5mm; }
+
+.hook {
+  border-left: 1.2pt solid var(--ink);
+  padding: .5mm 0 .5mm 4mm;
+  font-size: 10pt; line-height: 1.45;
+}
+.hook .hook-label {
+  display: block; font-family: var(--mono); font-size: 6.5pt;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 1mm;
+}
+
+/* ── Area bars ───────────────────────────────────────────────────────────────────────────── */
+/* A bar, not a dial. It shows rank and rough distance, which is all a weighted heuristic knows. */
+
+.areas { margin-top: 7mm; }
+.area-row { display: flex; align-items: center; gap: 3mm; padding: 1.3mm 0; break-inside: avoid; }
+.area-name { flex: 0 0 30mm; font-size: 8.5pt; font-weight: 600; }
+.area-track {
+  flex: 1 1 auto; position: relative; height: 3pt;
+  background: var(--rule-soft);
+}
+.area-fill { position: absolute; inset: 0 auto 0 0; background: var(--ink); }
+/* No colour here on purpose. Filling the low bars red turns five ranked areas into a traffic
+   light, which claims a precision a weighted heuristic does not have — and the rank is already
+   carried by the order. The one accent in this document belongs to "critical" alone. */
+.area-value { flex: 0 0 12mm; text-align: right; font-family: var(--mono); font-size: 8pt; }
+.area-weight { flex: 0 0 16mm; text-align: right; font-size: 7pt; color: var(--ink-3); }
+
+.area-legend { margin-top: 3mm; font-size: 7pt; color: var(--ink-3); line-height: 1.45; }
+
+/* ── Owner findings (page 1) ─────────────────────────────────────────────────────────────── */
+
+.costs { display: flex; gap: 8mm; margin-top: 7mm; align-items: flex-start; }
+.costs-list { flex: 1 1 auto; }
+
+.cost {
+  display: flex; gap: 4mm; break-inside: avoid;
+  padding: 3.2mm 0;
+  border-top: .5pt solid var(--rule-soft);
+}
+.cost:first-child { border-top: 0; padding-top: 0; }
+.cost-n {
+  flex: 0 0 8mm;
+  font-family: var(--mono); font-size: 8pt; color: var(--ink-3); padding-top: .6mm;
+}
+.cost-body { flex: 1 1 auto; }
+/* No heading here on purpose. Page 1 carries the scorer's `plainEnglish` and nothing else — the
+   moment a short developer-facing title appears above it, the owner starts reading labels. */
+.cost-body p { font-size: 9.5pt; line-height: 1.52; margin: 0; }
+.cost.is-critical .cost-n { color: var(--accent); font-weight: 700; }
+
+/* The good news, in the owner's margin: present, quieter, never absent. */
+.working-note {
+  margin-top: 5mm; padding-top: 2.5mm; border-top: .5pt solid var(--rule-soft);
+  font-size: 8pt; color: var(--ink-2); line-height: 1.5;
+}
+.working-label {
+  display: block; font-family: var(--mono); font-size: 6.5pt; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 1mm;
+}
+
+/* ── Evidence: the phone ─────────────────────────────────────────────────────────────────── */
+
+.evidence-rail { flex: 0 0 54mm; }
+.shot {
+  border: .5pt solid var(--rule);
+  background: #fff;
+  overflow: hidden;
+  line-height: 0;
+}
+.shot img { width: 100%; display: block; }
+.shot.is-phone { max-height: 96mm; }
+.shot.is-phone img { object-fit: cover; object-position: top center; }
+.shot-caption {
+  font-size: 7pt; line-height: 1.42; color: var(--ink-3);
+  margin-top: 1.8mm;
+  padding-left: 0;
+}
+.shot-caption strong { color: var(--ink); font-weight: 600; display: block; }
+
+/* ── Site-is-down page ───────────────────────────────────────────────────────────────────── */
+
+.down { margin-top: 9mm; max-width: 150mm; }
+.down h2 {
+  font-family: var(--serif); font-weight: 600;
+  font-size: 24pt; line-height: 1.15; letter-spacing: -.015em;
+  margin: 0 0 5mm;
+}
+.down .lede { font-size: 10.5pt; line-height: 1.55; margin-bottom: 5mm; }
+.down .consequence {
+  border-left: 1.2pt solid var(--accent);
+  padding-left: 4mm;
+  font-size: 10pt; line-height: 1.5;
+  margin-bottom: 6mm;
+}
+.down .next { font-size: 9.5pt; color: var(--ink-2); margin-bottom: 6mm; }
+.no-score {
+  border: .5pt solid var(--rule);
+  padding: 3.5mm 4mm;
+  font-size: 8pt; line-height: 1.45; color: var(--ink-2);
+}
+.no-score .no-score-label {
+  font-family: var(--mono); font-size: 6.5pt; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 1.2mm;
+}
+
+.attempt {
+  margin-top: 8mm;
+  font-family: var(--mono); font-size: 7.5pt; line-height: 1.7; color: var(--ink-2);
+}
+.attempt div { display: flex; gap: 3mm; }
+.attempt .k { flex: 0 0 30mm; color: var(--ink-3); }
+
+/* ── Developer pages ─────────────────────────────────────────────────────────────────────── */
+
+.area-group { margin-bottom: 7mm; break-inside: auto; }
+.area-group > h3 {
+  font-size: 8pt; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+  margin: 0 0 1.5mm; padding-bottom: 1.2mm;
+  border-bottom: .5pt solid var(--rule);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.area-group > h3 .score-tag { font-family: var(--mono); font-weight: 400; font-size: 7.5pt; color: var(--ink-3); letter-spacing: 0; text-transform: none; }
+
+.finding {
+  break-inside: avoid;
+  padding: 3mm 0;
+  border-bottom: .5pt solid var(--rule-soft);
+}
+.finding:last-child { border-bottom: 0; }
+
+.finding-head { display: flex; align-items: baseline; gap: 3mm; margin-bottom: 1.5mm; }
+.finding-head h4 { font-size: 9.5pt; font-weight: 700; margin: 0; flex: 1 1 auto; line-height: 1.3; }
+.finding.is-good { opacity: .78; }
+.finding.is-good .finding-head h4 { font-weight: 600; }
+
+.tag {
+  font-family: var(--mono); font-size: 6.5pt; letter-spacing: .12em; text-transform: uppercase;
+  padding: .6mm 1.6mm; border: .5pt solid var(--rule); color: var(--ink-2);
+  white-space: nowrap;
+}
+.tag.sev-critical { color: var(--accent); border-color: var(--accent); font-weight: 400; }
+.tag.sev-major    { color: var(--ink); border-color: var(--ink); }
+.tag.sev-good     { color: var(--ink-3); }
+.tag-area { color: var(--ink-3); border-color: var(--rule-soft); }
+
+.finding-meta { display: flex; gap: 6mm; align-items: baseline; font-size: 7.5pt; }
+.finding-meta .label {
+  font-family: var(--mono); font-size: 6.5pt; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3); margin-right: 1.5mm;
+}
+.finding-meta .evidence { font-family: var(--mono); font-size: 7.5pt; color: var(--ink); flex: 1 1 auto; }
+.finding-meta .effort { white-space: nowrap; }
+
+.sheet-gap { height: 6mm; }
+.good-head { margin-top: 7mm; }
+
+.empty-note { font-size: 8.5pt; color: var(--ink-3); font-style: italic; }
+
+/* ── Measurement appendix ────────────────────────────────────────────────────────────────── */
+
+.metrics { display: flex; flex-wrap: wrap; gap: 0 8mm; }
+.metric-group { flex: 1 1 76mm; min-width: 70mm; margin-bottom: 5mm; break-inside: avoid; }
+.metric-group h4 {
+  font-size: 7pt; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.5mm; padding-bottom: 1mm; border-bottom: .5pt solid var(--rule-soft);
+}
+.metric { display: flex; justify-content: space-between; gap: 4mm; font-size: 8pt; padding: .7mm 0; }
+.metric .k { color: var(--ink-2); }
+.metric .v { font-family: var(--mono); font-size: 7.5pt; text-align: right; }
+.metric .v.is-empty { color: var(--ink-3); }
+
+/* ── Method / limitations ────────────────────────────────────────────────────────────────── */
+
+.method { font-size: 7.5pt; line-height: 1.55; color: var(--ink-2); max-width: 160mm; }
+.method p { margin-bottom: .7em; }
+
+.colophon {
+  margin-top: 8mm; padding-top: 2.5mm; border-top: .5pt solid var(--rule);
+  display: flex; justify-content: space-between; gap: 6mm;
+  font-family: var(--mono); font-size: 6.5pt; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+
+/* Desktop evidence gets the full column; it is a wide image and cropping it hides the point. */
+.shot.is-desktop { max-height: 120mm; }
+.shot-pair { display: flex; gap: 6mm; align-items: flex-start; margin-top: 2mm; }
+.shot-pair .col-wide { flex: 1 1 auto; min-width: 0; }
+.shot-pair .col-narrow { flex: 0 0 48mm; }
