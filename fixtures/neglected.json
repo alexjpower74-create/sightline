@@ -1,9 +1,10 @@
 {
   "url": "http://example-construction.ca",
   "finalUrl": "http://example-construction.ca/",
-  "fetchedAt": "2026-09-08T02:29:10.530Z",
+  "fetchedAt": "2026-09-08T03:04:30.506Z",
   "ok": true,
   "error": null,
+  "unreachableReason": null,
   "timing": {
     "ttfbMs": 1840,
     "domContentLoadedMs": 6200,
@@ -22,14 +23,20 @@
   "https": {
     "enabled": false,
     "redirectsToHttps": false,
-    "mixedContent": []
+    "mixedContent": [],
+    "certificateProblem": null
   },
   "mobile": {
     "hasViewportMeta": false,
     "viewportContent": null,
     "horizontalOverflowPx": 412,
     "tapTargetsUnder44": 17,
-    "smallestTapTargetPx": 18
+    "smallestTapTargetPx": 18,
+    "overflowCulprit": {
+      "selector": "table.pricing",
+      "widthPx": 900,
+      "pastPx": 510
+    }
   },
   "a11y": {
     "imagesMissingAlt": 24,
@@ -56,11 +63,17 @@
   "freshness": {
     "copyrightYear": 2014,
     "generator": "WordPress 4.1",
+    "lastModified": "2014-08-19T00:00:00Z",
     "brokenLinks": [
-      "/services/roofing",
-      "/contact-us.html"
-    ],
-    "lastModified": "2014-08-19T00:00:00Z"
+      {
+        "url": "/services/roofing",
+        "status": 404
+      },
+      {
+        "url": "/contact-us.html",
+        "status": 404
+      }
+    ]
   },
   "screenshots": {
     "desktop": null,
