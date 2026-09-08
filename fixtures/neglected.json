@@ -1,0 +1,69 @@
+{
+  "url": "http://example-construction.ca",
+  "finalUrl": "http://example-construction.ca/",
+  "fetchedAt": "2026-09-08T02:29:10.530Z",
+  "ok": true,
+  "error": null,
+  "timing": {
+    "ttfbMs": 1840,
+    "domContentLoadedMs": 6200,
+    "loadMs": 11400
+  },
+  "weight": {
+    "totalBytes": 14800000,
+    "requests": 118,
+    "imageBytes": 13100000,
+    "scriptBytes": 940000,
+    "largestImage": {
+      "url": "/img/hero-full.jpg",
+      "bytes": 4600000
+    }
+  },
+  "https": {
+    "enabled": false,
+    "redirectsToHttps": false,
+    "mixedContent": []
+  },
+  "mobile": {
+    "hasViewportMeta": false,
+    "viewportContent": null,
+    "horizontalOverflowPx": 412,
+    "tapTargetsUnder44": 17,
+    "smallestTapTargetPx": 18
+  },
+  "a11y": {
+    "imagesMissingAlt": 24,
+    "imagesTotal": 31,
+    "inputsMissingLabel": 5,
+    "headingOrderBreaks": 3,
+    "hasMainLandmark": false,
+    "hasSkipLink": false,
+    "htmlLangSet": false,
+    "lowContrastNodes": 12
+  },
+  "seo": {
+    "title": "Home",
+    "titleLength": 4,
+    "metaDescription": null,
+    "metaDescriptionLength": 0,
+    "h1Count": 0,
+    "canonical": null,
+    "hasRobotsTxt": false,
+    "hasSitemap": false,
+    "ogTags": [],
+    "structuredDataTypes": []
+  },
+  "freshness": {
+    "copyrightYear": 2014,
+    "generator": "WordPress 4.1",
+    "brokenLinks": [
+      "/services/roofing",
+      "/contact-us.html"
+    ],
+    "lastModified": "2014-08-19T00:00:00Z"
+  },
+  "screenshots": {
+    "desktop": null,
+    "mobile": null
+  }
+}

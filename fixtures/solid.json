@@ -1,0 +1,72 @@
+{
+  "url": "https://example-tours.ca",
+  "finalUrl": "https://example-tours.ca/",
+  "fetchedAt": "2026-09-08T02:29:10.530Z",
+  "ok": true,
+  "error": null,
+  "timing": {
+    "ttfbMs": 210,
+    "domContentLoadedMs": 900,
+    "loadMs": 1650
+  },
+  "weight": {
+    "totalBytes": 1240000,
+    "requests": 34,
+    "imageBytes": 860000,
+    "scriptBytes": 180000,
+    "largestImage": {
+      "url": "/img/hero.webp",
+      "bytes": 240000
+    }
+  },
+  "https": {
+    "enabled": true,
+    "redirectsToHttps": true,
+    "mixedContent": []
+  },
+  "mobile": {
+    "hasViewportMeta": true,
+    "viewportContent": "width=device-width, initial-scale=1",
+    "horizontalOverflowPx": 0,
+    "tapTargetsUnder44": 1,
+    "smallestTapTargetPx": 40
+  },
+  "a11y": {
+    "imagesMissingAlt": 2,
+    "imagesTotal": 18,
+    "inputsMissingLabel": 0,
+    "headingOrderBreaks": 0,
+    "hasMainLandmark": true,
+    "hasSkipLink": false,
+    "htmlLangSet": true,
+    "lowContrastNodes": 1
+  },
+  "seo": {
+    "title": "Boat Tours in Central Newfoundland | Example Tours",
+    "titleLength": 49,
+    "metaDescription": "Half-day and full-day iceberg and whale tours departing daily from central Newfoundland.",
+    "metaDescriptionLength": 88,
+    "h1Count": 1,
+    "canonical": "https://example-tours.ca/",
+    "hasRobotsTxt": true,
+    "hasSitemap": true,
+    "ogTags": [
+      "og:title",
+      "og:description",
+      "og:image"
+    ],
+    "structuredDataTypes": [
+      "LocalBusiness"
+    ]
+  },
+  "freshness": {
+    "copyrightYear": 2026,
+    "generator": null,
+    "brokenLinks": [],
+    "lastModified": "2026-06-02T00:00:00Z"
+  },
+  "screenshots": {
+    "desktop": null,
+    "mobile": null
+  }
+}

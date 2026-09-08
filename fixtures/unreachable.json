@@ -1,0 +1,63 @@
+{
+  "url": "https://example-gone.ca",
+  "finalUrl": "https://example-gone.ca",
+  "fetchedAt": "2026-09-08T02:29:10.530Z",
+  "ok": false,
+  "error": "ENOTFOUND",
+  "timing": {
+    "ttfbMs": 0,
+    "domContentLoadedMs": 0,
+    "loadMs": 0
+  },
+  "weight": {
+    "totalBytes": 0,
+    "requests": 0,
+    "imageBytes": 0,
+    "scriptBytes": 0,
+    "largestImage": null
+  },
+  "https": {
+    "enabled": false,
+    "redirectsToHttps": false,
+    "mixedContent": []
+  },
+  "mobile": {
+    "hasViewportMeta": false,
+    "viewportContent": null,
+    "horizontalOverflowPx": 0,
+    "tapTargetsUnder44": 0,
+    "smallestTapTargetPx": null
+  },
+  "a11y": {
+    "imagesMissingAlt": 0,
+    "imagesTotal": 0,
+    "inputsMissingLabel": 0,
+    "headingOrderBreaks": 0,
+    "hasMainLandmark": false,
+    "hasSkipLink": false,
+    "htmlLangSet": false,
+    "lowContrastNodes": 0
+  },
+  "seo": {
+    "title": null,
+    "titleLength": 0,
+    "metaDescription": null,
+    "metaDescriptionLength": 0,
+    "h1Count": 0,
+    "canonical": null,
+    "hasRobotsTxt": false,
+    "hasSitemap": false,
+    "ogTags": [],
+    "structuredDataTypes": []
+  },
+  "freshness": {
+    "copyrightYear": null,
+    "generator": null,
+    "brokenLinks": [],
+    "lastModified": null
+  },
+  "screenshots": {
+    "desktop": null,
+    "mobile": null
+  }
+}

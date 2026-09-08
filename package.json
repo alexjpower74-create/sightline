@@ -1,0 +1,10 @@
+{
+  "name": "sightline",
+  "version": "0.1.0",
+  "description": "Audits a small business website the way its owner experiences it, and turns the findings into a pitch you can hand over.",
+  "type": "module",
+  "bin": { "sightline": "./bin/sightline.js" },
+  "engines": { "node": ">=22" },
+  "license": "UNLICENSED",
+  "scripts": { "test": "node --test test/" }
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Example Construction",
+    "url": "http://example-construction.ca",
+    "town": "Grand Falls-Windsor",
+    "sector": "construction"
+  },
+  {
+    "name": "Example Tours",
+    "url": "https://example-tours.ca",
+    "town": "Twillingate",
+    "sector": "tourism"
+  },
+  {
+    "name": "Example Gone",
+    "url": "https://example-gone.ca",
+    "town": "Springdale",
+    "sector": "retail"
+  }
+]

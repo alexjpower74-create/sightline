@@ -1,0 +1,5 @@
+node_modules/
+.rig/
+out/
+*.pdf
+.DS_Store
