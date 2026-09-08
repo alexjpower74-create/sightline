@@ -121,11 +121,12 @@ async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
         // starting, `browser` is still null when the finally runs, and closing null leaks the
         // browser that arrives a moment later. One per timed-out site, on a long call list.
         //
-        // The promise is assigned SYNCHRONOUSLY, before anything is awaited. The first version of
-        // this put `await freePort()` inside the argument object, which suspends before `launching`
-        // exists — so a deadline landing in that window found both the value and the promise still
-        // null and leaked the browser anyway. That window is a millisecond wide and it leaked on
-        // every run.
+        // The promise is assigned SYNCHRONOUSLY, before anything is awaited. Written the obvious
+        // way, `await freePort()` sits inside the argument object and suspends before `launching`
+        // exists, so a deadline landing in that window would find both the value and the promise
+        // null. Hardening, not a fix for anything observed: the window is sub-millisecond and no
+        // realistic deadline lands in it — restoring the race does not reproduce a leak. It costs
+        // nothing and it closes the hole, which is reason enough to keep it.
         launching = (async () => launch({
           headless: opts.headless ?? true,
           port: opts.port ?? await freePort(),

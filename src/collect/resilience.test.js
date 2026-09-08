@@ -9,7 +9,7 @@
 // somewhere else, so the thing under test is the thing that changes.
 
 import { suite } from '@alexpower/rig/harness/check.js'
-import { launch } from '@alexpower/rig/harness/cdp.js'
+import { launch, liveBrowsers } from '@alexpower/rig/harness/cdp.js'
 import { startServer } from './server.js'
 import { startTlsServer } from './tls.js'
 import { execSync } from 'node:child_process'
@@ -194,20 +194,31 @@ await suite('resilience', async t => {
   // deadline can fire before `launch()` has resolved, and closing a variable that is still null
   // leaks the browser that arrives a moment later — one per timed-out site, on a call list that
   // may be fifty long. Confirmed real: with the old cleanup this left four processes per run.
-  const chromeCount = () => Number(execSync("pgrep -f 'Google Chrome.*headless' | wc -l || true").toString().trim())
-  const baseline = chromeCount()
+  //
+  // Measured two ways on purpose. `liveBrowsers()` is the harness's own count of what this process
+  // launched and has not closed — precise, immediate, and blind to any Chrome the machine happens
+  // to be running for its own reasons. The process count is the OS reality, which is what caught
+  // this defect in the first place and which a bookkeeping bug alone could not fake.
+  const chromeCount = () => Number(execSync("pgrep -f 'rig-chrome-' | wc -l || true").toString().trim())
+  const baselineLive = liveBrowsers()
+  const baselineProcs = chromeCount()
   await check('a run that times out while Chrome is starting does not leak a browser', {
     assert: async () => {
       // 200ms cannot outlast a Chrome start, so the deadline fires mid-launch every time.
       for (let i = 0; i < 2; i++) {
         await collect(server.url('/good.html'), { timeoutMs: 200, screenshots: false, checkLinks: false })
       }
+      if (liveBrowsers() > baselineLive) return false
       await new Promise(r => setTimeout(r, 3000))
-      return chromeCount() <= baseline
+      return chromeCount() <= baselineProcs
     },
     // Leak one on purpose. This does not break the collector — it breaks the world the assertion
     // is looking at, which is the thing worth proving: that a leak is something this check can
     // actually see. An assertion that cannot see a leak is not watching for one.
+    //
+    // The harness's reaper kills anything still open when this process exits, so a leak no longer
+    // survives the run. It still accumulates DURING one, which is what a CLI working through fifty
+    // sites in a single process would hit, and what this check is here to catch.
     breaks: async () => {
       const stray = await launch({ headless: true, port: await freePort() })
       return () => stray.close()
