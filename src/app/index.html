@@ -8,6 +8,10 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
   header{border-bottom:1px solid var(--line);padding:26px 32px;display:flex;align-items:baseline;gap:16px}
+  /* Inside the native window there is no title bar, so the header has to clear the traffic
+     lights itself. Set by the app; a normal browser never sees it. */
+  html.native header{padding-top:44px;-webkit-app-region:drag}
+  html.native header h1,html.native header .sub{-webkit-app-region:no-drag}
   h1{font:700 22px/1 var(--sans);letter-spacing:-.02em;margin:0}
   header .sub{color:var(--faint);font-size:14px}
   main{max-width:1040px;margin:0 auto;padding:36px 32px 100px}

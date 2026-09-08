@@ -1,27 +1,28 @@
 # Sightline.app
 
-A double-clickable launcher, because the person this was built for does not use a terminal and a
-tool you cannot start is not a tool.
+A native macOS window, because a browser tab is not an application. It sits among thirty other
+tabs, advertises `127.0.0.1` in an address bar, and closing the wrong one kills it.
 
-`./install.sh` builds the bundle into `~/Applications`.
+`./install.sh` compiles `src/main.swift` and builds the bundle into `~/Applications`.
+Requires the Xcode command line tools (`swiftc`).
 
-## How it behaves
+## What it is
 
-Double-click and it starts the local server, waits for it to answer, and opens the page in the
-default browser. **Closing the tab stops it.** The page holds the server open with a heartbeat and
-the server exits about 25 seconds after the last one — so the off-switch is the one a person
-already knows, and there is never a process left running that nobody can see.
+A WKWebView in a real window with its own menu bar and Dock icon, wrapped around the local server.
+The window owns the server's lifetime: launching starts it, quitting stops it. Nothing is left
+running that nobody can see.
 
-Launch it again while it is already running and it brings the page back rather than starting a
-second copy.
+- **No title bar** — the page states its own name, and the header keeps clear of the traffic
+  lights via a `native` class the app injects before first paint.
+- **A real Edit menu.** Not decoration: a web view without one silently refuses Cmd-V, and
+  dictation tools paste through the same path — so a text field that looks fine is unusable.
+- **PDFs open in whatever you already use for PDFs.** A `target="_blank"` link has nowhere to go in
+  a single-window app, and Preview is nicer than a second web view for something you will print.
+- **View → Reports Folder** opens `~/Documents/Sightline`.
+- Already running? Launching again just shows the window rather than starting a second server.
 
-It is a background app (`LSUIElement`), so it does not bounce in the Dock or add a menu bar. The
-browser tab is the whole interface.
+## Verified by driving it
 
-`SIGHTLINE_REPO` overrides where it looks for the code, if the repo is not at
-`~/Projects/Sightline`.
-
-## If it does not start
-
-It shows an alert naming the reason — no Node on the machine, or the repo not where it expected.
-Anything else lands in `/tmp/sightline-app.log`.
+Typed an address, clicked Audit it, watched a real audit come back at 73/100, opened the report
+inside the window, quit the app, confirmed the server died with it. The typing check is the one
+that mattered — WebKit text fields fail in ways Chrome never shows you.
