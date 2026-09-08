@@ -36,6 +36,58 @@ export const MOBILE = { width: 390, height: 844, dpr: 3, mobile: true }
  * @returns {Promise<import('../contract.js').Measurement>}
  */
 export async function collect (url, opts = {}) {
+  const first = await attempt(url, opts, {})
+
+  // It worked, or the server gave us a real HTTP answer we already understand — a 404, a 500, or
+  // bot protection turning us away. Nothing to second-guess.
+  if (first.m.ok) return first.m
+  if (first.m.unreachableReason === 'blocked' || first.m.unreachableReason === 'http-error') return first.m
+
+  // Never declare a site down on one tool's word.
+  //
+  // This exists because we did exactly that to a real business. Chrome could not negotiate HTTP/2
+  // with a live site and returned ERR_HTTP2_PROTOCOL_ERROR; the report went out saying "anyone
+  // who looks you up right now sees an error page instead of your business". curl got a 200 in
+  // 1.3 seconds. The site was fine. Our checker was not.
+  const second = await confirmUnreachable(url, opts)
+  if (!second.reachable) {
+    // Both instruments agree. The site really is unreachable.
+    first.m.unreachableReason = classifyFailure(first.err)
+    return first.m
+  }
+
+  // A plain HTTP/1.1 client just got through, so an HTTP/1.1 conversation with this server works
+  // and it is the browser that could not hold one. Give the browser the same conversation before
+  // settling for a non-answer: a real measurement beats a graceful shrug, and a site whose server
+  // speaks broken HTTP/2 is otherwise a permanent blind spot.
+  const note = opts.onNote || (() => {})
+  if (opts.retryWithoutHttp2 !== false && !(first.err instanceof TimeoutError)) {
+    note({ kind: 'retry', why: rawCodeOf(first.err) || describe(first.err), plainStatus: second.status })
+    const retry = await attempt(url, {
+      ...opts,
+      browser: null,          // the borrowed browser cannot be relaunched with different flags
+      port: undefined,
+      timeoutMs: opts.retryTimeoutMs ?? Math.min(opts.timeoutMs ?? 45_000, 30_000)
+    }, { chromeArgs: ['--disable-http2'] })
+
+    if (retry.m.ok) {
+      note({ kind: 'retry', outcome: 'measured over HTTP/1.1' })
+      return retry.m
+    }
+  }
+
+  // Still nothing. Ours, not theirs — and say so with both sides showing.
+  first.m.unreachableReason = 'checker-error'
+  first.m.error = `${rawCodeOf(first.err) || describe(first.err)} from Chrome; a plain request returned ${second.status}`
+  return first.m
+}
+
+/**
+ * One go at a site. Returns the Measurement and, when it failed, the error that stopped it — the
+ * caller decides what that failure means, because deciding needs a second opinion this function
+ * deliberately does not have.
+ */
+async function attempt (url, opts = {}, { chromeArgs = [] } = {}) {
   const timeoutMs = opts.timeoutMs ?? 45_000
   const deadline = Date.now() + timeoutMs
   const note = opts.onNote || (() => {})
@@ -44,6 +96,7 @@ export async function collect (url, opts = {}) {
   let browser = opts.browser || null
   const borrowedBrowser = !!opts.browser
   let timer = null
+  let failure = null
 
   try {
     const expiry = new Promise((_, reject) => {
@@ -51,7 +104,14 @@ export async function collect (url, opts = {}) {
       timer.unref?.()
     })
     const work = (async () => {
-      if (!browser) browser = await launch({ headless: opts.headless ?? true, port: opts.port ?? await freePort(), width: DESKTOP.width, height: DESKTOP.height })
+      if (!browser) {
+        browser = await launch({
+          headless: opts.headless ?? true,
+          port: opts.port ?? await freePort(),
+          width: DESKTOP.width, height: DESKTOP.height,
+          args: chromeArgs
+        })
+      }
       await runPasses(browser, url, m, { ...opts, deadline, note })
     })()
     await Promise.race([work, expiry])
@@ -60,38 +120,20 @@ export async function collect (url, opts = {}) {
   } catch (err) {
     // Whatever we did manage to measure stays in `m`. The caller gets a partial picture and an
     // honest reason, which is far more useful downstream than an exception.
+    failure = err
     m.ok = false
     m.error = describe(err)
     const cert = certificateCodeOf(err)
     if (cert && !m.https.certificateProblem) {
       m.https.certificateProblem = `${cert}${NETWORK_ERRORS[cert] ? ` — ${NETWORK_ERRORS[cert]}` : ''}`
     }
-
-    // Never declare a site down on one tool's word.
-    //
-    // This exists because we did exactly that to a real business. Chrome could not negotiate
-    // HTTP/2 with a live site and returned ERR_HTTP2_PROTOCOL_ERROR; the report went out saying
-    // "anyone who looks you up right now sees an error page instead of your business". curl got a
-    // 200 in 1.3 seconds. The site was fine. Our checker was not.
-    //
-    // So before any transport-level failure is written up as the owner's problem, ask again the
-    // simple way. If a plain request gets through, the failure is ours and says nothing whatever
-    // about their website.
-    if (!m.unreachableReason) {
-      const second = await confirmUnreachable(url, opts)
-      if (second.reachable) {
-        m.unreachableReason = 'checker-error'
-        m.error = `${rawCodeOf(err) || describe(err)} from Chrome; a plain request returned ${second.status}`
-      } else {
-        m.unreachableReason = classifyFailure(err)
-      }
-    }
   } finally {
     clearTimeout(timer)
     if (browser && !borrowedBrowser) { try { await browser.close() } catch { /* it is going away regardless */ } }
   }
-  return m
+  return { m, err: failure }
 }
+
 
 async function runPasses (browser, url, m, opts) {
   const { deadline, note } = opts
@@ -462,8 +504,11 @@ export function classifyFailure (err) {
   if (/ERR_NAME_NOT_RESOLVED|ERR_NAME_RESOLUTION_FAILED|ERR_DNS/.test(raw)) return 'dns'
   if (/ERR_CERT|ERR_SSL/.test(raw)) return 'tls'
   if (/ERR_BLOCKED_BY|ERR_ACCESS_DENIED/.test(raw)) return 'blocked'
-  // Refused, reset, empty, unreachable: nothing came back. The contract has no separate word for
-  // that, so it lands here — see the note in .rig/report-c1.md.
+  if (/ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|no page after/.test(raw)) return 'timeout'
+  // Refused, reset, empty, unreachable: the server was there to say no, or hung up mid-sentence.
+  // Not a timeout — telling an owner their site "timed out" about a refused connection describes
+  // something that did not happen.
+  if (/ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_EMPTY_RESPONSE|ERR_ADDRESS_UNREACHABLE|ERR_CONNECTION_FAILED/.test(raw)) return 'refused'
   return 'timeout'
 }
 

@@ -52,7 +52,7 @@ await suite('resilience', async t => {
   await t.check('a dead server comes back as a Measurement, not an exception', {
     assert: async () => {
       const m = await collect(deadOrigin + '/', { browser, screenshots: false, timeoutMs: 15_000 })
-      return wellFormed(m) && m.ok === false && /refused|reached|answered/.test(m.error)
+      return wellFormed(m) && m.ok === false && m.unreachableReason === 'refused' && /refused|reached|answered/.test(m.error)
     },
     breaks: async () => {
       // Put a working site back on that exact address. If the check still passes, it is not

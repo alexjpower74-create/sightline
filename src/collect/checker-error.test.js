@@ -42,17 +42,30 @@ const flipHttp1 = works => () => { broken.cfg.http1Works = works; runs.clear(); 
 
 await suite('our failure is not their fault', async t => {
 
-  // RED IF: a browser-side transport failure is written up as the owner's website being down.
-  // This is the check that would have caught the a live site report before it went out.
-  await t.check('a site Chrome cannot reach but a plain request can is OUR error, not theirs', {
+  // RED IF: a site whose server speaks broken HTTP/2 is written off instead of measured. This is
+  // the a live site site: Chrome cannot negotiate h2, a plain request gets a 200, and the answer
+  // is neither "you are down" nor a shrug — it is a real audit taken over HTTP/1.1.
+  await t.check('a server with broken HTTP/2 is measured over HTTP/1.1, not written off', {
     assert: async () => {
       const m = await measure(broken.origin + '/')
-      return m.ok === false && m.unreachableReason === 'checker-error' &&
-        m.error.includes('net::ERR_HTTP2_PROTOCOL_ERROR') && m.error.includes('a plain request returned 200')
+      return m.ok === true && m.unreachableReason === null &&
+        m.seo.title === "Young's Refrigeration" && m.seo.h1Count === 1 && m.mobile.hasViewportMeta === true
     },
-    // The control makes the site genuinely unreachable — HTTP/1.1 stops working too. Now both
-    // opinions agree it is down, and calling it checker-error would be the wrong answer.
+    // The control makes the site genuinely unreachable — HTTP/1.1 stops working too, so the retry
+    // has nothing to fall back to and there is no measurement to be had.
     breaks: flipHttp1(false)
+  })
+
+  // RED IF: a failure the retry cannot rescue is still blamed on the owner. This server hangs up
+  // on anything asking for HTML and answers a plain request perfectly well, so neither HTTP/2 nor
+  // HTTP/1.1 gets Chrome a page — and the honest answer is that our checker failed.
+  await t.check('a browser failure a retry cannot fix is OUR error, not theirs', {
+    assert: async () => {
+      const m = await measure(good.url('/hostile'))
+      return m.ok === false && m.unreachableReason === 'checker-error' &&
+        /a plain request returned 200/.test(m.error) && /^net::ERR_/.test(m.error)
+    },
+    breaks: () => { good.cfg.hostileToBrowsers = false; runs.clear(); return () => { good.cfg.hostileToBrowsers = true; runs.clear() } }
   })
 
   // RED IF: the two opinions are not actually independent. Node 26's fetch negotiates HTTP/2 and
@@ -99,7 +112,9 @@ await suite('our failure is not their fault', async t => {
   await t.check('a server that is truly gone is still reported as unreachable', {
     assert: async () => {
       const m = await collect(deadOrigin + '/', { browser, screenshots: false, checkLinks: false, timeoutMs: 15_000 })
-      return m.ok === false && m.unreachableReason === 'timeout' && !/plain request returned/.test(m.error)
+      // 'refused' and not 'timeout': the server was there to say no. An owner told their site
+      // "timed out" about a refused connection has been told something that did not happen.
+      return m.ok === false && m.unreachableReason === 'refused' && !/plain request returned/.test(m.error)
     },
     breaks: async () => {
       // Put a working site back on that exact address. Both opinions now agree it is fine.

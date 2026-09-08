@@ -30,6 +30,7 @@ export async function startServer (options = {}) {
     robots: true, sitemap: true, softFiles: false,
     boomStatus: 500, loopHops: Infinity, hangCloses: false, hugeChunks: 44_000,
     blockedMode: 'blocked',      // 'blocked' | 'plain404'
+    hostileToBrowsers: true,     // /hostile hangs up on anything asking for HTML
     goneStatus: 404,
     challengeMode: 'challenge',  // 'challenge' | 'real'
     ...options
@@ -46,6 +47,15 @@ export async function startServer (options = {}) {
       return res.end(cfg.boomStatus >= 400 ? '<h1>Internal Server Error</h1>' : '<!doctype html><html lang="en"><head><title>Recovered</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main><h1>Back up</h1></main></body></html>')
     }
     if (p === '/gone') { res.writeHead(cfg.goneStatus, { 'content-type': 'text/html' }); return res.end('<h1>Not found</h1>') }
+
+    // Hangs up on anything that asks for HTML, and answers a plain request perfectly well. Chrome
+    // cannot get a page out of this over HTTP/2 or HTTP/1.1, so the retry does not rescue it and
+    // the honest answer is that our checker failed — not that the site is down.
+    if (p === '/hostile') {
+      if (cfg.hostileToBrowsers && /text\/html/i.test(req.headers.accept || '')) return req.socket.destroy()
+      res.writeHead(200, { 'content-type': 'text/html' })
+      return res.end('<!doctype html><html lang="en"><head><title>Reachable after all</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main><h1>Hello</h1></main></body></html>')
+    }
 
     // Bot protection turning an automated visitor away. Not a broken site, and the collector must
     // never report it as one.
