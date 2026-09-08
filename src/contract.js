@@ -108,6 +108,8 @@ export function emptyMeasurement (url) {
  * @property {Score} score
  * @property {Finding[]} findings
  * @property {string} generatedAt
+ * @property {string} [preparedBy]  who is sending this. An audit arriving unsigned from a stranger
+ *   reads as spam; the same document with a name on it reads as a person who did some work.
  */
 
 /** Cheap structural validation, so a bad hand-off fails loudly at the seam instead of quietly downstream. */

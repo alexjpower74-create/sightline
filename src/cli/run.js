@@ -23,7 +23,11 @@ export async function auditOne (business, opts = {}) {
 
   const measurement = await collect(business.url, { outDir, timeoutMs: opts.timeoutMs ?? 45_000 })
   const { score: s, findings } = score(measurement)
-  return assertAudit({ business, measurement, score: s, findings, generatedAt: new Date().toISOString() })
+  return assertAudit({
+    business, measurement, score: s, findings,
+    generatedAt: new Date().toISOString(),
+    preparedBy: opts.preparedBy || undefined
+  })
 }
 
 /** A list of businesses, ranked so a shop knows who to phone first. */
@@ -49,9 +53,9 @@ export async function writeReports (audits, outDir) {
   for (const a of audits) {
     const slug = a.business.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     const html = join(outDir, `${slug}.html`)
-    writeFileSync(html, renderHtml(a))
+    writeFileSync(html, renderHtml(a, { preparedBy: a.preparedBy }))
     written.push(html)
-    try { written.push(await renderPdf(a, join(outDir, `${slug}.pdf`))) } catch (e) {
+    try { written.push(await renderPdf(a, join(outDir, `${slug}.pdf`), { preparedBy: a.preparedBy })) } catch (e) {
       process.stderr.write(`  (pdf failed for ${a.business.name}: ${e.message})\n`)
     }
   }
@@ -60,10 +64,15 @@ export async function writeReports (audits, outDir) {
 
 /** The call list. This is the artefact a two-person shop actually acts on. */
 export function callList (audits) {
+  // A null score has four different causes and they are not interchangeable. Printing "down"
+  // for all of them puts back, in the summary a person actually reads, the exact accusation the
+  // report pages were rewritten to avoid.
+  const NO_SCORE = { unreachable: 'down', blocked: 'blocked', 'not-checked': 'n/c' }
+
   const rows = audits.map(a => ({
     name: a.business.name,
     town: a.business.town || '',
-    score: a.score.overall === null ? 'down' : String(a.score.overall),
+    score: a.score.overall === null ? (NO_SCORE[a.score.band] || 'n/c') : String(a.score.overall),
     criticals: a.findings.filter(f => f.severity === 'critical').length,
     quickWins: a.findings.filter(f => f.effort === 'quick' && f.severity !== 'good').length,
     hook: a.score.hook
@@ -71,12 +80,14 @@ export function callList (audits) {
   const w = (k, min) => Math.max(min, ...rows.map(r => String(r[k]).length))
   const nw = w('name', 8), tw = w('town', 4)
   const lines = [
-    `${'BUSINESS'.padEnd(nw)}  ${'TOWN'.padEnd(tw)}  SCORE  CRIT  QUICK  LEAD WITH`,
-    `${'-'.repeat(nw)}  ${'-'.repeat(tw)}  -----  ----  -----  ${'-'.repeat(40)}`
+    `${'BUSINESS'.padEnd(nw)}  ${'TOWN'.padEnd(tw)}    SCORE  CRIT  QUICK  LEAD WITH`,
+    `${'-'.repeat(nw)}  ${'-'.repeat(tw)}  -------  ----  -----  ${'-'.repeat(40)}`
   ]
   for (const r of rows) {
-    lines.push(`${r.name.padEnd(nw)}  ${r.town.padEnd(tw)}  ${r.score.padStart(5)}  ${String(r.criticals).padStart(4)}  ${String(r.quickWins).padStart(5)}  ${truncate(r.hook, 60)}`)
+    lines.push(`${r.name.padEnd(nw)}  ${r.town.padEnd(tw)}  ${r.score.padStart(7)}  ${String(r.criticals).padStart(4)}  ${String(r.quickWins).padStart(5)}  ${truncate(r.hook, 60)}`)
   }
+  if (rows.some(r => r.score === 'n/c')) lines.push(`\n  n/c — our checker could not read the site. That is a limitation on our end, not a fault of theirs.`)
+  if (rows.some(r => r.score === 'blocked')) lines.push(`  blocked — the site turned our checker away. Check it by hand.`)
   return lines.join('\n')
 }
 
