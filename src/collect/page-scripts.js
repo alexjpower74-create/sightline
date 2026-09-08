@@ -25,7 +25,13 @@ export function docInfoScript () {
     scrollHeight: Math.max(de.scrollHeight, document.body ? document.body.scrollHeight : 0),
     scrollWidth: Math.max(de.scrollWidth, document.body ? document.body.scrollWidth : 0),
     innerWidth: window.innerWidth,
-    innerHeight: window.innerHeight
+    innerHeight: window.innerHeight,
+    // The LAYOUT viewport, which is not the device width. A page with no viewport meta lays out at
+    // Chrome's fallback width and the whole thing is scaled down to fit the screen — so this is
+    // how wide the page thinks it is, and the screenshot has to be taken at that width or it
+    // shows a slice instead of what the visitor sees.
+    clientWidth: document.documentElement.clientWidth,
+    clientHeight: document.documentElement.clientHeight
   }
 }
 

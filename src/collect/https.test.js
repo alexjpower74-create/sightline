@@ -47,10 +47,17 @@ const browser = await launch({ headless: true, port: await freePort() })
 const run = url => collect(url, { browser, screenshots: false, checkLinks: false, timeoutMs: 25_000 })
 
 await suite('https and mixed content', async t => {
+  // Every check below drives two full measurements — the real page and the broken one — so the
+  // harness's 10s default is a thin margin. One full run flaked on it at exactly 10002ms while the
+  // same check took 3.9s standalone: machine load, not a defect, but a suite that goes red under
+  // load is a suite people learn to re-run instead of read. Nothing here should legitimately take
+  // 30 seconds.
+  const check = (name, opts) => t.check(name, { timeout: 30_000, ...opts })
+
 
   // RED IF: the padlock is reported from the URL that was asked for rather than the one that
   // answered. A site that redirects away to plain http is not an https site.
-  await t.check('an https page is recorded as https', {
+  await check('an https page is recorded as https', {
     assert: async () => {
       const m = await run(tls.origin + '/')
       return m.ok === true && m.https.enabled === true && m.seo.title === 'Ridge Marine'
@@ -60,7 +67,7 @@ await suite('https and mixed content', async t => {
 
   // RED IF: an http address that lands on https is not credited with the redirect. This is the
   // difference between "you have no certificate" and "you have one, it is wired up correctly".
-  await t.check('an http address that redirects to https is credited with it', {
+  await check('an http address that redirects to https is credited with it', {
     assert: async () => {
       const m = await run(plainOrigin + '/')
       return m.ok === true && m.https.enabled === true && m.https.redirectsToHttps === true &&
@@ -71,7 +78,7 @@ await suite('https and mixed content', async t => {
 
   // RED IF: an http subresource on an https page goes unnoticed. This is the one that takes the
   // padlock off a page the owner believes is secure.
-  await t.check('finds an http image loaded into an https page', {
+  await check('finds an http image loaded into an https page', {
     assert: async () => {
       const m = await run(tls.origin + '/')
       return m.https.enabled === true && m.https.mixedContent.some(u => u.includes('/logo.png'))
