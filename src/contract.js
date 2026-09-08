@@ -28,7 +28,7 @@ export const AREAS = {
  * @property {string}  fetchedAt    ISO 8601
  * @property {boolean} ok           false when the site could not be reached at all
  * @property {string|null} error
- * @property {'dns'|'timeout'|'http-error'|'blocked'|'tls'|null} unreachableReason
+ * @property {'dns'|'timeout'|'http-error'|'blocked'|'tls'|'checker-error'|null} unreachableReason
  *   Why we could not read the site. `blocked` is deliberately distinct from the rest: bot
  *   protection refusing our checker is NOT the same as the site being down, and telling an owner
  *   their working site is down is the single worst thing this tool could do.
