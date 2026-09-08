@@ -50,6 +50,29 @@ page with the PDF a click away. It binds to 127.0.0.1, serves nothing outside th
 and keeps no state beyond the run. The command line is still the better tool for a list of fifteen
 — but nobody leans forward at a terminal.
 
+## The app
+
+This repo is the **engine**: the collector, the score, the report renderer, and the command line
+above. There is also a Mac application called Sightline, and it is built from a separate repo that
+depends on this one.
+
+An audit is the first step of a job, not the whole of it. The app wraps this engine in a window
+with four more tools around it — a proposal, a WCAG 2.2 AA conformance report, weekly client
+monitoring, and a generated head start on the rebuild — so that acting on a finding does not mean
+quitting one application and opening another.
+
+The Mac shell used to live here, in `app/`. It moved out when the two became one product, because
+two bundles sharing one identifier and one name is a thing that works only on the machine it was
+built on. What is left here is importable, testable and useful on its own:
+
+```js
+import { collect } from 'sightline/collect'
+import { score }   from 'sightline/score'
+import { renderHtml } from 'sightline/report'
+```
+
+Nothing above changed. `sightline serve` still runs, and this repo has no dependency on the app.
+
 ## What it measures
 
 Real Chrome, twice — desktop at 1440×900 and a phone at 390×844. Page weight from actual network
