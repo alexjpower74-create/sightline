@@ -15,5 +15,13 @@
   },
   "devDependencies": {
     "@alexpower/rig": "file:../Rig"
+  },
+  "exports": {
+    ".": "./src/contract.js",
+    "./contract": "./src/contract.js",
+    "./collect": "./src/collect/index.js",
+    "./score": "./src/score/index.js",
+    "./report": "./src/report/index.js",
+    "./*": "./*"
   }
 }
