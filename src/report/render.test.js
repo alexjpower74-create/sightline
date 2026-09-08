@@ -13,7 +13,7 @@
 
 import { suite } from '@alexpower/rig/harness/check.js'
 import { renderHtml, view, esc } from './html.js'
-import { sampleAudit, usedRealScorer } from './sample-audit.js'
+import { sampleAudit } from './sample-audit.js'
 import { STRONG_HEADLINE } from './copy.js'
 
 /** The document is three <article class="sheet"> elements; page-1 claims must be checked on page 1. */
@@ -321,11 +321,4 @@ await suite('report / render', async s => {
     }
   })
 
-  // Red if: the day scoring lands on main, these checks keep passing against a stale snapshot of
-  // vera's output instead of the real thing. There is no control for this one — it is a statement
-  // about which code path ran, and it cannot be made to fail without deleting src/score/. Reported
-  // UNPROVEN on purpose.
-  await s.check(`scoring source is ${usedRealScorer() ? 'src/score/ (real)' : 'scored-fixtures.json (SNAPSHOT — scoring is not on this branch yet)'}`, {
-    assert: () => true
-  })
 })

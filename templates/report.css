@@ -85,12 +85,14 @@ p:last-child { margin-bottom: 0; }
 .masthead .issued strong { display: block; color: var(--ink); font-weight: 600; font-size: 8.5pt; }
 
 .rule-heavy { border: 0; border-top: 1.2pt solid var(--ink); margin: 3.5mm 0 0; }
-.rule       { border: 0; border-top: .5pt solid var(--rule); margin: 6mm 0; }
+.rule       { border: 0; border-top: .5pt solid var(--rule); margin: 5mm 0; }
 .rule-soft  { border: 0; border-top: .5pt solid var(--rule-soft); margin: 4mm 0; }
 
 /* ── Section headings ────────────────────────────────────────────────────────────────────── */
 
 .section-head {
+  /* A heading must never be the last thing on a sheet. */
+  break-after: avoid;
   display: flex; align-items: baseline; justify-content: space-between; gap: 6mm;
   border-bottom: .5pt solid var(--rule);
   padding-bottom: 1.6mm;
@@ -106,7 +108,7 @@ p:last-child { margin-bottom: 0; }
 
 /* ── The score ───────────────────────────────────────────────────────────────────────────── */
 
-.verdict { display: flex; gap: 10mm; align-items: flex-start; margin-top: 7mm; }
+.verdict { display: flex; gap: 10mm; align-items: flex-start; margin-top: 6mm; }
 
 .score-block { flex: 0 0 46mm; }
 
@@ -145,8 +147,8 @@ p:last-child { margin-bottom: 0; }
 /* ── Area bars ───────────────────────────────────────────────────────────────────────────── */
 /* A bar, not a dial. It shows rank and rough distance, which is all a weighted heuristic knows. */
 
-.areas { margin-top: 7mm; }
-.area-row { display: flex; align-items: center; gap: 3mm; padding: 1.3mm 0; break-inside: avoid; }
+.areas { margin-top: 5mm; }
+.area-row { display: flex; align-items: center; gap: 3mm; padding: 1.1mm 0; break-inside: avoid; }
 .area-name { flex: 0 0 30mm; font-size: 8.5pt; font-weight: 600; }
 .area-track {
   flex: 1 1 auto; position: relative; height: 3pt;
@@ -163,7 +165,7 @@ p:last-child { margin-bottom: 0; }
 
 /* ── Owner findings (page 1) ─────────────────────────────────────────────────────────────── */
 
-.costs { display: flex; gap: 8mm; margin-top: 7mm; align-items: flex-start; }
+.costs { display: flex; gap: 8mm; margin-top: 5mm; align-items: flex-start; }
 .costs-list { flex: 1 1 auto; }
 
 .cost {
@@ -202,8 +204,16 @@ p:last-child { margin-bottom: 0; }
   line-height: 0;
 }
 .shot img { width: 100%; display: block; }
-.shot.is-phone { max-height: 96mm; }
-.shot.is-phone img { object-fit: cover; object-position: top center; }
+/* A definite height, not a max, and an explicit height on the image so object-fit has something
+   to crop against.
+   With `max-height: 96mm` and no height on the img, object-fit did nothing: a 780x3376 capture
+   became a 202x875px image inside a 202x363px frame. overflow:hidden clipped it on screen, so it
+   looked fine — but the flex row still stood 363mm-worth tall, the whole costs block was pushed
+   onto the next sheet, and page 1 went out with its heading stranded above an empty half-page.
+   Every fixture carries screenshots: null, so nothing caught this until the collector landed and
+   the CLI was run end to end for real. */
+.shot.is-phone { height: 56mm; }
+.shot.is-phone img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 
 /* A wide capture, given the whole column. In the 54mm rail it arrives unreadable, and an unreadable
    screenshot is worse than none — it looks like we padded the page. */
@@ -328,3 +338,5 @@ p:last-child { margin-bottom: 0; }
 .shot-pair { display: flex; gap: 6mm; align-items: flex-start; margin-top: 2mm; }
 .shot-pair .col-wide { flex: 1 1 auto; min-width: 0; }
 .shot-pair .col-narrow { flex: 0 0 48mm; }
+/* A phone shot with no desktop shot beside it gets the column, capped so it cannot run a page. */
+.shot-pair .col-wide .shot:not(.is-desktop) { max-height: 150mm; }

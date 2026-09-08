@@ -39,6 +39,26 @@ function strayChromes () {
   }
 }
 
+/**
+ * Wait until the count stops moving before believing it.
+ *
+ * One browser is a dozen processes, and `browser.close()` returns well before the helpers are
+ * reaped — sampling immediately after a render counts ghosts. That is not theoretical: it made
+ * this check go red when the suites were run back to back, because the setup render's helpers were
+ * still dying when the baseline was taken, so the baseline was higher than anything that followed.
+ * Sampling once, at either end, is how a leak check reports on scheduling noise instead of leaks.
+ */
+async function settledChromes ({ tries = 20, gap = 300 } = {}) {
+  let last = strayChromes()
+  for (let i = 0; i < tries; i++) {
+    await new Promise(r => setTimeout(r, gap))
+    const now = strayChromes()
+    if (now === last) return now
+    last = now
+  }
+  return last
+}
+
 await suite('report / pdf', async s => {
   const audit = sampleAudit('neglected')
   const out = join(stage, 'neglected.pdf')
@@ -119,19 +139,17 @@ await suite('report / pdf', async s => {
   // check pass for the wrong reason: the leak was already running by then, so it counted into
   // `before` as well as `after` and the comparison held — it only went red because Chrome's helper
   // processes were still appearing between the two samples. That is a race dressed as a control.
-  const baseline = strayChromes()
+  const baseline = await settledChromes()
   let leaked = null
   await s.check('renderPdf leaves no Chrome behind', {
     timeout: TIMEOUT,
     assert: async () => {
       await renderPdf(sampleAudit('solid'), join(stage, 'solid.pdf'))
-      await new Promise(r => setTimeout(r, 800))
-      return strayChromes() === baseline
+      return (await settledChromes()) === baseline
     },
     breaks: async () => {
       leaked = await launch({ headless: true, port: 9388 })
-      // One browser is several processes; wait for its helpers so the count is settled either way.
-      await new Promise(r => setTimeout(r, 800))
+      await settledChromes()
       return async () => { if (leaked) { await leaked.close(); leaked = null } }
     }
   })

@@ -394,21 +394,30 @@ function metrics (v) {
 function evidenceSection (v) {
   const { desktop, mobile } = v.shots
   if (!desktop && !mobile) return ''
-  return `
-  <section>
-    <div class="section-head"><h2>Screenshots</h2><span class="aside">Captured during this audit</span></div>
-    <div class="shot-pair">
-      ${yes(desktop, `
+  // Built with plain ternaries rather than yes(cond, html).
+  //
+  // yes() takes an already-built string, so its second argument is evaluated whether the condition
+  // holds or not — `yes(desktop, \`...${desktop.src}...\`)` throws on a null desktop instead of
+  // rendering nothing. It never fired while all three fixtures had both screenshots null; the
+  // first audit with a phone shot and no desktop shot took the whole render down.
+  const desktopCol = desktop
+    ? `
       <div class="col-wide">
         <div class="shot is-desktop"><img src="${desktop.src}" alt=""></div>
         <p class="shot-caption"><strong>Desktop — 1440 × 900 viewport.</strong> ${esc(v.measurement.finalUrl || '')}</p>
-      </div>`)}
-      ${yes(mobile, `
-      <div class="col-narrow">
+      </div>`
+    : ''
+  const mobileCol = mobile
+    ? `
+      <div class="${desktop ? 'col-narrow' : 'col-wide'}">
         <div class="shot"><img src="${mobile.src}" alt=""></div>
         <p class="shot-caption"><strong>Phone — 390 × 844 viewport.</strong> ${mobile.width ? `Captured ${mobile.width} × ${mobile.height} px — ` : ''}as the browser laid the page out at that size.</p>
-      </div>`)}
-    </div>
+      </div>`
+    : ''
+  return `
+  <section>
+    <div class="section-head"><h2>Screenshots</h2><span class="aside">Captured during this audit</span></div>
+    <div class="shot-pair">${desktopCol}${mobileCol}</div>
   </section>`
 }
 
