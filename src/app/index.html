@@ -10,8 +10,9 @@
   header{border-bottom:1px solid var(--line);padding:26px 32px;display:flex;align-items:baseline;gap:16px}
   /* Inside the native window there is no title bar, so the header has to clear the traffic
      lights itself. Set by the app; a normal browser never sees it. */
-  html.native header{padding-top:44px;-webkit-app-region:drag}
-  html.native header h1,html.native header .sub{-webkit-app-region:no-drag}
+  /* No -webkit-app-region here: that is an Electron feature and does nothing in WKWebView.
+     The native app puts a real drag strip over this header instead. */
+  html.native header{padding-top:44px}
   h1{font:700 22px/1 var(--sans);letter-spacing:-.02em;margin:0}
   header .sub{color:var(--faint);font-size:14px}
   main{max-width:1040px;margin:0 auto;padding:36px 32px 100px}

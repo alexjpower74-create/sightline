@@ -88,6 +88,31 @@ final class Server {
     }
 }
 
+// MARK: - Drag strip
+
+/// A borderless window has no title bar to grab, so the drag region has to be built.
+///
+/// CSS `-webkit-app-region: drag` is an Electron feature and does nothing in WKWebView — writing
+/// it produced a window that could not be moved at all, which nobody noticed because looking at a
+/// screenshot cannot tell you whether a window drags.
+///
+/// This sits over the page's own header, which has nothing clickable in it. The traffic lights
+/// live in the window's title bar layer, above the content view, so they keep working.
+final class DragStrip: NSView {
+    override func mouseDown(with event: NSEvent) {
+        window?.performDrag(with: event)
+    }
+    // Double-click a title bar and macOS zooms or minimises, depending on the system setting.
+    override func mouseUp(with event: NSEvent) {
+        guard event.clickCount == 2 else { return super.mouseUp(with: event) }
+        switch UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") {
+        case "Minimize": window?.miniaturize(nil)
+        case "None":     break
+        default:         window?.zoom(nil)
+        }
+    }
+}
+
 // MARK: - Window
 
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
@@ -124,6 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         window.titlebarAppearsTransparent = true
         window.minSize = NSSize(width: 720, height: 560)
         window.setFrameAutosaveName("SightlineMain")
+        window.isMovableByWindowBackground = true
         window.backgroundColor = NSColor(red: 0.055, green: 0.067, blue: 0.086, alpha: 1) // matches the page
 
         let config = WKWebViewConfiguration()
@@ -151,6 +177,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         content.autoresizingMask = [.width, .height]
         web.frame = content.bounds
         content.addSubview(web)
+
+        // Across the top, over the page header. 92pt is the header's height in the page's own CSS
+        // (44 top padding for the traffic lights + 26 + the line itself).
+        let drag = DragStrip(frame: NSRect(x: 0, y: content.bounds.height - 92,
+                                           width: content.bounds.width, height: 92))
+        drag.autoresizingMask = [.width, .minYMargin]
+        content.addSubview(drag)
+
         content.addSubview(status)
         status.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
