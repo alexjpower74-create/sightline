@@ -80,13 +80,21 @@ export function score (m) {
         }]
       }
     }
+    // A server that answers with an error DID answer. Telling an owner their site "did not
+    // respond" when it responded with a 500 is a sentence they can correctly argue with, and
+    // losing an argument about a fact costs you the rest of the document.
+    const answered = m.unreachableReason === 'http-error'
     return {
       score: { overall: null, areas: {}, band: 'unreachable',
-        hook: 'We could not reach your website at all when we checked.' },
+        hook: answered
+          ? 'Your website answered with an error instead of your home page when we checked.'
+          : 'We could not reach your website at all when we checked.' },
       findings: [{
         id: 'unreachable', area: 'trust', severity: SEVERITY.CRITICAL,
-        title: 'Site could not be reached',
-        plainEnglish: 'Your website did not respond when we tried to visit it. Anyone who looks you up right now sees an error page instead of your business.',
+        title: answered ? 'Site answers with an error' : 'Site could not be reached',
+        plainEnglish: answered
+          ? 'Your website is running, but instead of your home page it returns an error. Anyone who looks you up right now sees an error message where your business should be — and search engines that keep finding one will eventually stop showing you.'
+          : 'Your website did not respond when we tried to visit it. Anyone who looks you up right now sees an error page instead of your business.',
         evidence: m.error || 'no response',
         effort: 'moderate'
       }]
