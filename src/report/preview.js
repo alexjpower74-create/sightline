@@ -13,7 +13,7 @@ import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { renderHtml } from './html.js'
 import { renderPdf } from './pdf.js'
-import { sampleAudit, SAMPLES, usedRealScorer } from './sample-audit.js'
+import { sampleAudit, SAMPLES } from './sample-audit.js'
 import { shoot } from './shoot.js'
 
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'out')
@@ -34,7 +34,6 @@ if (wantShots) {
   }
   console.log(`shots:  ${demoShots.mobile}\n        ${demoShots.desktop}`)
 }
-console.log(`scorer: ${usedRealScorer() ? 'src/score/ (real)' : 'scored-fixtures.json (snapshot)'}`)
 
 for (const name of SAMPLES) {
   const audit = sampleAudit(name)

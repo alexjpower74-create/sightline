@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- A stand-in for the kind of site that broke the size budget: photographic hero, gradients
+     everywhere, and a long page. The flat-colour demo next door compresses unrealistically well
+     and would let a size check pass without ever being tested against the content that caused the
+     problem — 15 live audits averaging 6.7 MB of PDF. Nothing here touches the live internet. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hilltop Joinery</title>
+<style>
+  body { margin:0; font-family: Georgia, serif; width: 1100px; color:#2b2b2b; }
+  .hero { height:520px; position:relative;
+          background:linear-gradient(135deg,#1d3b57,#8899a6 40%,#c9a227 70%,#5d2b1a); }
+  .hero:after { content:''; position:absolute; inset:0;
+          background-image:radial-gradient(circle at 20% 30%,rgba(255,255,255,.55),transparent 42%),
+                           radial-gradient(circle at 72% 62%,rgba(0,0,0,.5),transparent 46%),
+                           radial-gradient(circle at 45% 80%,rgba(200,160,60,.5),transparent 38%); }
+  .hero h1 { position:absolute; bottom:40px; left:40px; color:#fff; font-size:44px; margin:0; z-index:2; }
+  .sec { padding:30px 40px; border-bottom:1px solid #ddd; }
+  .sec h2 { margin:0 0 14px; font-size:22px; color:#1d3b57; }
+  .row { display:flex; gap:16px; }
+  .row div { flex:1; height:190px; background:linear-gradient(45deg,#7a6a5a,#d8cfc2 60%,#9aa7b0); }
+  .sec p { font-size:14px; line-height:1.6; margin:12px 0 0; }
+  .foot { background:#1d3b57; color:#9fb3c6; padding:20px 40px; font-size:12px; }
+</style>
+</head>
+<body>
+  <div class="hero"><h1>Hilltop Joinery — Building since 1974</h1></div>
+  <div class="sec"><h2>Residential</h2><div class="row"><div></div><div></div><div></div></div>
+    <p>New builds, extensions and full renovations across central Newfoundland, from foundation to finish.</p></div>
+  <div class="sec"><h2>Commercial</h2><div class="row"><div></div><div></div><div></div></div>
+    <p>Fit-outs, warehousing and small industrial work for local businesses and the town council.</p></div>
+  <div class="sec"><h2>Service</h2><div class="row"><div></div><div></div><div></div></div>
+    <p>Roofing, siding, decks and the small jobs nobody else will take on at short notice.</p></div>
+  <div class="sec"><h2>Recent work</h2><div class="row"><div></div><div></div><div></div></div>
+    <p>Fifty years of projects across Green Bay, the Exploits valley and the Baie Verte peninsula.</p></div>
+  <div class="sec"><h2>About</h2><div class="row"><div></div><div></div><div></div></div>
+    <p>Family run since 1974, and still working out of the same yard on Industrial Park Road.</p></div>
+  <div class="foot">&copy; 2019 Hilltop Joinery</div>
+</body>
+</html>
