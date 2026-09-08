@@ -61,7 +61,7 @@ Export `collect(url, opts) -> Measurement`. Requirements:
 - Tests in `src/collect/*.test.js` — serve local HTML fixtures you write under `src/collect/`,
   never the live internet. A test that depends on someone else's website is not a test.
 
-Report to `.rig/report-c1.md`.
+Report to `docs/build-report-c1.md` — a tracked file. Commit it with your work.
 
 ### c2 — Report
 Owns:
@@ -91,7 +91,7 @@ Requirements:
   `check()` with negative controls — a test asserting "the HTML contains a score" that passes when
   you delete the score block is VOID and will fail your run.
 
-Report to `.rig/report-c2.md`.
+Report to `docs/build-report-c2.md` — a tracked file. Commit it with your work.
 
 ### vera — Contract, scoring, CLI
 Owns:
