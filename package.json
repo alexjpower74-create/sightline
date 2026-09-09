@@ -11,7 +11,7 @@
   },
   "license": "UNLICENSED",
   "scripts": {
-    "test": "node --test test/"
+    "test": "node test/run.js"
   },
   "devDependencies": {
     "@alexpower/rig": "file:../Rig"
