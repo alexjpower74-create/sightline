@@ -20,7 +20,7 @@ jobs:
           path: Rig
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
       # The collector and PDF suites drive a real headless Chrome; ubuntu-latest ships google-chrome.
       - run: google-chrome --version
       - run: npm install
