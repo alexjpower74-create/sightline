@@ -1,5 +1,7 @@
 # Sightline
 
+[![test](https://github.com/alexjpower74-create/sightline/actions/workflows/test.yml/badge.svg)](https://github.com/alexjpower74-create/sightline/actions/workflows/test.yml)
+
 Audits a small business website the way its owner experiences it, and turns the findings into a
 document you can hand them.
 
