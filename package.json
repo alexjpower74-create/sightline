@@ -23,5 +23,11 @@
     "./score": "./src/score/index.js",
     "./report": "./src/report/index.js",
     "./*": "./*"
+  },
+  "dependencies": {
+    "sharp": "^0.35.4"
+  },
+  "allowScripts": {
+    "sharp@0.35.4": true
   }
 }

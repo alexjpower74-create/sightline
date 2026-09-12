@@ -29,7 +29,7 @@ five quick wins is an easier first conversation than one who needs a rebuild.
 git clone <this repo> && cd sightline && npm link
 ```
 
-Node 22+. Needs Chrome. macOS for the image compression (`sips`); everywhere else the size check
+Node 22+. Needs Chrome. Screenshots are re-encoded with `sips` on macOS and `sharp` everywhere else; the size check
 goes red rather than passing quietly.
 
 ## Use

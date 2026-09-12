@@ -7,6 +7,7 @@
 import { readFileSync, existsSync, statSync, mkdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
@@ -101,6 +102,28 @@ function haveSips () {
   return sipsOk
 }
 
+/** Whether sharp is installed. It is a dependency, so normally yes; a broken native build says no. */
+let sharpOk = null
+function haveSharp () {
+  if (sharpOk === null) {
+    try { createRequire(import.meta.url).resolve('sharp'); sharpOk = true }
+    catch { sharpOk = false }
+  }
+  return sharpOk
+}
+
+/** Same re-encode, two encoders: sips where it exists (macOS), sharp everywhere else. */
+function reencode (path, out, width, quality) {
+  if (haveSips()) {
+    const args = []
+    if (width > 0) args.push('--resampleWidth', String(width))
+    args.push('-s', 'format', 'jpeg', '-s', 'formatOptions', String(quality), path, '--out', out)
+    execFileSync('/usr/bin/sips', args, { stdio: 'ignore' })
+    return
+  }
+  execFileSync(process.execPath, [join(here, 'reencode.js'), path, out, String(width), String(quality)], { stdio: 'ignore' })
+}
+
 /**
  * Re-encode a screenshot to a JPEG, scaled down to the size the page can actually print.
  *
@@ -125,7 +148,7 @@ const MAX_PIXELS = 6_000_000
 const MIN_WIDTH = 560
 
 function compressed (path, srcSize, { maxWidth, quality }) {
-  if (!haveSips()) return null
+  if (!haveSips() && !haveSharp()) return null
   try {
     const st = statSync(path)
     const key = createHash('sha1')
@@ -144,11 +167,7 @@ function compressed (path, srcSize, { maxWidth, quality }) {
       }
     }
 
-    const args = []
-    if (!srcSize || srcSize.width > width) args.push('--resampleWidth', String(width))
-    args.push('-s', 'format', 'jpeg', '-s', 'formatOptions', String(quality), path, '--out', out)
-
-    execFileSync('/usr/bin/sips', args, { stdio: 'ignore' })
+    reencode(path, out, (!srcSize || srcSize.width > width) ? width : 0, quality)
     if (!existsSync(out) || statSync(out).size === 0) return null
     return { path: out, mime: 'image/jpeg' }
   } catch {

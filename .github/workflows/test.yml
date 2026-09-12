@@ -1,0 +1,29 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # The test harness is `@alexpower/rig` via `file:../Rig`, so rig is checked out beside this
+      # repo, at the path the dependency already names.
+      - uses: actions/checkout@v4
+        with:
+          path: sightline
+      - uses: actions/checkout@v4
+        with:
+          repository: alexjpower74-create/rig
+          path: Rig
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The collector and PDF suites drive a real headless Chrome; ubuntu-latest ships google-chrome.
+      - run: google-chrome --version
+      - run: npm install
+        working-directory: sightline
+      - run: npm test
+        working-directory: sightline
